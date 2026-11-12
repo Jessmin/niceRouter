@@ -31,7 +31,7 @@ Copy-Item .env.example .env
 
 | 通道 | 模型前缀 | 本机准备 |
 | --- | --- | --- |
-| Trae IDE | `trae::` | 登录 Trae CN，配置有效的本机会话 |
+| Trae IDE | `trae::` | 识别 Trae CN 后填入转发接口的 `Cloud-IDE-JWT` |
 | Trae SOLO | `solo::` | 与 Trae IDE 共用 Trae CN 账号和会话 |
 | Qoder CN | `qoder::` | 登录 Qoder CN，启动时自动读取本机额度与签到授权 |
 | Qoder 国际版 | `qoder-intl::` | 登录 Qoder 国际版，启动时自动读取该版本的本机会话 |
@@ -41,9 +41,9 @@ Copy-Item .env.example .env
 
 ### Trae CN 与 SOLO
 
-网关会识别 Trae 的安装位置。当前转发接口需要单独的 `Cloud-IDE-JWT` 授权。
+网关会从已识别的 Trae CN 安装读取应用 ID 和构建信息，补齐转发请求头。转发接口的 `Cloud-IDE-JWT` 可通过 `.env` 的 `TRAE_TOKEN` 配置，也可在本机网页的「设置」中填入，网页填写的令牌只在本次运行中保留。
 
-将 `config/trae-session.example.json` 复制为 `config/trae-session.json`，填写本机的 `deviceId` 和 `headers`。其中 `headers.authorization` 使用 `Cloud-IDE-JWT <本机令牌>`，`headers.x-ide-token` 使用同一令牌。也可通过 `.env` 的 `TRAE_TOKEN` 统一填入这两个授权头，用 `TRAE_HEADERS`（JSON 对象）和 `TRAE_DEVICE_ID` 补充本机客户端字段。[Trae 会话模板](config/trae-session.example.json)
+已有 `config/trae-session.json` 或 `.env` 中的 `TRAE_HEADERS`、`TRAE_DEVICE_ID` 会优先使用。手工配置会话时，`headers.authorization` 使用 `Cloud-IDE-JWT <本机令牌>`，`headers.x-ide-token` 使用同一令牌。[Trae 会话模板](config/trae-session.example.json)
 
 ### Qoder CN 与国际版
 
@@ -73,7 +73,7 @@ node --env-file-if-exists=.env tools/refresh-doubao-auth.mjs
 
 ### 其他本机配置
 
-- WorkBuddy 有效的本机模型缓存可直接使用。首次启动缺少缓存时，网关先显示随附目录，再后台向官方服务刷新目录。
+- WorkBuddy 登录读取已验证 5.5.6、5.6.2 和 5.8.3 的会话格式。首次启动缺少模型缓存时，网关先显示随附目录，再后台向官方服务刷新目录。
 - WorkBuddy 的非默认安装或配置目录可设置 `WORKBUDDY_INSTALL_DIR`、`WORKBUDDY_CONFIG_DIR`。MiniMax Code 可设置 `MINIMAX_CODE_INSTALL_DIR`、`MINIMAX_CODE_DATA_DIR`。
 - 其他 OpenAI 兼容上游可配置 `UPSTREAM_BASE`、`UPSTREAM_KEY`，然后使用 `openai::` 前缀。`MODELS_FILE` 可指定一份与上游匹配的清单。[模型清单格式](config/models.json)
 

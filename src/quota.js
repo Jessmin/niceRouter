@@ -107,8 +107,9 @@ export async function traeCheckin(opts = {}) {
 }
 
 export async function traeQuota() {
+  const deviceId = config.trae.deviceId;
   const [status, usage, checkin] = await Promise.all([
-    post('/trae/api/v2/pay/ide_user_pay_status', { trae_client: 'IDE', device_id: config.trae.deviceId }),
+    post('/trae/api/v2/pay/ide_user_pay_status', { trae_client: 'IDE', ...(deviceId && { device_id: deviceId }) }),
     post('/trae/api/v2/pay/ide_user_ent_usage', { require_usage: true, req_source: 1 }),
     traeCheckinStatus().catch((e) => ({ error: String(e.message || e) })),
   ]);

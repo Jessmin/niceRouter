@@ -11,6 +11,80 @@ const ACCOUNT_ENDPOINTS = Object.freeze({
   catalog: '/v3/config',
 });
 
+// These are the official crypto modules in the 5.8, 5.6 and 5.5 package layouts.
+// Check the function identities because a minified name may mean something else
+// in a different build.
+function workbuddyCrypto(installDir, load) {
+  const layouts = [
+    ['app-lifetime-job.js', 'D', 'G', 'K', 'R'],
+    ['process-cpu-sampler.js', 'init_dist', 'normalizeAtRestBuildKeyCapabilities', 'parseSupportedEnvelope', 'AtRestCrypto'],
+    ['dist.js', null, 'normalizeAtRestKeyPayload', 'parseSupportedEnvelope', 'AtRestCrypto'],
+  ];
+  for (const [file, initialize, normalize, parse, crypto] of layouts) {
+    try {
+      const api = load(path.join(installDir, 'resources/app.asar/main', file));
+      const legacy = normalize === 'normalizeAtRestKeyPayload';
+      if (api?.[normalize]?.name !== (legacy ? 'normalizeAtRestKeyPayload' : 'normalizeAtRestBuildKeyCapabilities')
+        || api[parse]?.name !== 'parseSupportedEnvelope') continue;
+      if (initialize) {
+        if (typeof api[initialize] !== 'function') continue;
+        api[initialize]();
+      }
+      const Codec = api[crypto];
+      if (Codec?.name === 'AtRestCrypto' && typeof Codec.prototype?.open === 'function' && typeof Codec.prototype.dispose === 'function') {
+        return { normalizeKey: api[normalize], parseEnvelope: api[parse], Codec, legacy };
+      }
+    } catch { /* An absent or incompatible module can belong to another supported layout. */ }
+  }
+  throw new Error('此版本 WorkBuddy 的加密登录格式尚不兼容。请更新 WorkBuddy 客户端后重新登录。');
+}
+
+function readWorkbuddySession(installDir, authFile, {
+  load = require,
+  readFile = fs.readFileSync,
+  exists = fs.existsSync,
+  readNativeKey = () => process._linkedBinding('electron_browser_workbuddy_storage').loggerGet(),
+} = {}) {
+  if (!authFile || exists(authFile + '.logged-out')) throw new Error('请先在本机登录 WorkBuddy。');
+  let session;
+  try { session = JSON.parse(readFile(authFile, 'utf8')); }
+  catch { throw new Error('无法读取 WorkBuddy 登录，请在本机登录 WorkBuddy 后重试。'); }
+  const id = session?.account?.uid;
+  const userId = typeof id === 'number' && Number.isSafeInteger(id) ? String(id) : id;
+  let token = session?.auth?.accessToken;
+  if (typeof userId !== 'string' || !userId.trim() || /[\x00-\x1f\x7f]/.test(userId) || !token) {
+    throw new Error('请先在本机登录 WorkBuddy。');
+  }
+  if (typeof token !== 'string') {
+    if (token.$wbEncrypted !== 1 || Object.hasOwn(token, 'scheme') || typeof token.envelope !== 'string') {
+      throw new Error('此版本 WorkBuddy 的加密登录格式尚不兼容。请更新 WorkBuddy 客户端后重新登录。');
+    }
+    const envelope = Buffer.from(token.envelope, 'base64');
+    if (!envelope.length || envelope.toString('base64') !== token.envelope) {
+      throw new Error('WorkBuddy 登录文件格式无效，请重新登录。');
+    }
+    const { normalizeKey, parseEnvelope, Codec, legacy } = workbuddyCrypto(installDir, load);
+    let key, codec, bytes;
+    try {
+      const normalized = normalizeKey(readNativeKey());
+      key = legacy ? normalized : normalized?.symmetric?.value;
+      if ((!legacy && normalized?.symmetric?.status !== 'available') || !Buffer.isBuffer(key?.key)) throw new Error();
+      codec = new Codec(key);
+      bytes = codec.open(parseEnvelope(envelope), { framing: 'field' });
+      token = bytes.toString('utf8');
+    } catch {
+      throw new Error('无法读取 WorkBuddy 的加密登录，请用运行网关的 Windows 用户重新登录 WorkBuddy。');
+    } finally {
+      bytes?.fill(0);
+      try { codec?.dispose(); } finally { key?.key?.fill(0); }
+    }
+  }
+  if (!token || /[\s\x00-\x1f\x7f]/.test(token) || exists(authFile + '.logged-out')) {
+    throw new Error('请先在本机登录 WorkBuddy。');
+  }
+  return { token, userId };
+}
+
 // Fixed account paths mirror main/account.js; catalog mirrors CloudProductProvider.
 // Claim always rechecks activity inside this process before sending the write.
 async function queryWorkbuddyAccount(operation, { token, userId, catalogHeaders = {}, fetchFn = fetch } = {}) {
@@ -39,28 +113,15 @@ async function queryWorkbuddyAccount(operation, { token, userId, catalogHeaders 
   return request(ACCOUNT_ENDPOINTS[operation]);
 }
 
-module.exports = { queryWorkbuddyAccount, ACCOUNT_ENDPOINTS };
+module.exports = { queryWorkbuddyAccount, readWorkbuddySession, ACCOUNT_ENDPOINTS };
 
 async function main() {
 const installDir = process.env.WORKBUDDY_INSTALL_DIR;
 const cliPath = process.env.WORKBUDDY_CLI_PATH;
 if (!installDir || !cliPath) throw new Error('WorkBuddy install/CLI paths are required');
-const cryptoApi = require(path.join(installDir, 'resources/app.asar/main/app-lifetime-job.js'));
-cryptoApi.D();
-const caps = cryptoApi.G(process._linkedBinding('electron_browser_workbuddy_storage').loggerGet());
-if (caps.symmetric.status !== 'available') throw new Error('WorkBuddy native credential key is unavailable');
-const session = JSON.parse(fs.readFileSync(process.env.WORKBUDDY_AUTH_FILE, 'utf8'));
-const codec = new cryptoApi.R(caps.symmetric.value);
-function readField(value) {
-  if (typeof value === 'string') return value;
-  if (value?.$wbEncrypted !== 1 || value.scheme) throw new Error('Unsupported WorkBuddy credential format');
-  const bytes = codec.open(cryptoApi.K(Buffer.from(value.envelope, 'base64')), { framing: 'field' });
-  try { return bytes.toString('utf8'); } finally { bytes.fill(0); }
-}
-try {
-  process.env.CODEBUDDY_AUTH_TOKEN = readField(session.auth.accessToken);
-  process.env.ACC_USER_ID = session.account?.uid || '';
-} finally { codec.dispose(); caps.symmetric.value.key.fill(0); }
+const { token, userId } = readWorkbuddySession(installDir, process.env.WORKBUDDY_AUTH_FILE);
+process.env.CODEBUDDY_AUTH_TOKEN = token;
+process.env.ACC_USER_ID = userId;
 Object.assign(process.env, { CODEBUDDY_FORCE_LITE_WB_BUNDLE: '1', DISABLE_TELEMETRY: '1' });
 const query = process.argv.indexOf('--gateway-query');
 if (query >= 0) {
@@ -77,12 +138,12 @@ if (query >= 0) {
       'x-product': 'SaaS', 'x-requested-with': 'XMLHttpRequest' };
   }
   const data = await queryWorkbuddyAccount(operation, {
-    token: process.env.CODEBUDDY_AUTH_TOKEN, userId: session.account.uid,
+    token, userId,
     catalogHeaders,
   });
   if (operation === 'summary' && data.code === 0 && process.argv.includes('--gateway-observation')) {
     const { usageAccountKey } = await import('../src/usage-periods.js');
-    data.gatewayAccountKey = usageAccountKey('workbuddy', session.account.uid);
+    data.gatewayAccountKey = usageAccountKey('workbuddy', userId);
   }
   console.log(JSON.stringify(data));
 } else {

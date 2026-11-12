@@ -53,7 +53,7 @@ export function desktopClientStatuses(enabledNames, qoderDesktopAuthAllowed = tr
   }
 
   return [
-    row('trae', found('trae'), config.trae.token ? '' : 'Trae IDE 和 SOLO 需要配置转发接口的 Cloud-IDE-JWT，详见 README。', { channels: ['trae', 'solo'] }),
+    row('trae', found('trae'), config.trae.token ? '' : '已识别安装。请在设置里填入转发接口的 Cloud-IDE-JWT，详见 README。', { channels: ['trae', 'solo'] }),
     row('qoder', qoderExe || found('qoder'), !qoderExe || !qoderWorker
       ? '检查 Qoder CN 安装位置及 QODER_EXE、QODER_WORKER。'
       : !config.qoder.token ? qoderAuthIssue || '已接入转发。额度和签到尚未读取到本机授权，请登录 Qoder CN 后重启网关。' : '',

@@ -197,7 +197,8 @@ export async function* streamWorkbuddy({ model, messages, tools, functions, tool
     if (stdinError) throw new Error(sanitizeWorkbuddyError(`WorkBuddy CLI stdin failed: ${stdinError.message}${stderr.trim() ? `; ${stderr.trim().slice(0,500)}` : ''}`));
     if (!result || result.is_error || result.subtype !== 'success' || exitCode !== 0) {
       const message = (result?.errors || []).join('; ') || result?.result || `CLI closed without success (exit=${exitCode})`;
-      const auth = /authentication|login|unauthori[sz]ed|expired|401/i.test(message);
+      const auth = /authentication|login|unauthori[sz]ed|expired|401/i.test(message)
+        || /请先在本机登录 WorkBuddy|无法读取 WorkBuddy 的加密登录/.test(stderr);
       throw Object.assign(new Error(sanitizeWorkbuddyError(`WorkBuddy: ${message}${stderr.trim() ? `; ${stderr.trim().slice(0,500)}` : ''}`)), { status: auth ? 400 : 502, type: auth ? 'authentication_error' : 'upstream_error' });
     }
     if (typeof result.result === 'string' && result.result) {
@@ -229,9 +230,15 @@ export async function workbuddyQuery(query, { observe = false } = {}) {
   const observeSummary = observe && query === 'summary';
   const args = [cfg.wrapperPath, '--gateway-query', query];
   if (observeSummary) args.push('--gateway-observation');
-  const { stdout } = await execFileAsync(cfg.exePath, args, {
-    env: workbuddyCliEnv(), windowsHide: true, timeout: query === 'claim' ? 25000 : 15000, maxBuffer: 1024 * 1024,
-  });
+  let stdout;
+  try {
+    ({ stdout } = await execFileAsync(cfg.exePath, args, {
+      env: workbuddyCliEnv(), windowsHide: true, timeout: query === 'claim' ? 25000 : 15000, maxBuffer: 1024 * 1024,
+    }));
+  } catch (error) {
+    const detail = sanitizeWorkbuddyError(error.stderr).trim().slice(0, 500);
+    throw new Error(detail || (error.killed ? 'WorkBuddy 账户请求超时。' : '无法启动 WorkBuddy，请检查客户端安装。'));
+  }
   const raw = JSON.parse(stdout.trim());
   // Preserve the official claim business codes for race/already/ineligible handling.
   if (query === 'claim') return raw;

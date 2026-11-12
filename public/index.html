@@ -419,9 +419,9 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
       <div id="lanBox"></div>
     </div>
     <div class="fieldset">
-      <label for="tokenIn">上游 Token</label>
-      <input type="password" id="tokenIn" placeholder="Bearer 后面的那一串">
-      <div class="hint">只发给本机服务，不落盘。过期后重新填一次即可，不用重启。</div>
+      <label for="tokenIn">Trae CN / SOLO 授权</label>
+      <input type="password" id="tokenIn" placeholder="Cloud-IDE-JWT 令牌">
+      <div class="hint">已识别的 Trae CN 安装会提供应用信息。此处填写的令牌只在本次运行中保留。</div>
     </div>
     <section class="fieldset" id="clientSetupField" aria-labelledby="clientSetupTitle" hidden>
       <h4 id="clientSetupTitle" tabindex="-1">客户端接入状态</h4>
@@ -718,7 +718,7 @@ async function api(path, opts = {}) {
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v24';
+const UI_VERSION = 'v25';
 let retryTimer = 0;
 let pendingModelList = null;
 
@@ -1600,7 +1600,6 @@ async function loadQuota(force = false) {
 function openSettings(focusClients = false) {
   $('#keyIn').value = state.settings.key;
   $('#tokenIn').value = '';
-  $('#tokenIn').placeholder = 'Trae CN / SOLO 当前有效的访问令牌';
   $('#sysIn').value = state.settings.system;
   $('#tempIn').value = state.settings.temp;
   $('#tempVal').textContent = Number(state.settings.temp).toFixed(1);

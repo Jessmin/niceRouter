@@ -47,5 +47,7 @@ __pycache__/
 !/tools/test_qoder_mixed_close.mjs
 !/tools/test_stream_cancellation.mjs
 !/tools/test_tool_history.mjs
+!/tools/test_trae_desktop_metadata.mjs
 !/tools/test_usage_periods.mjs
+!/tools/test_workbuddy_auth.mjs
 !/tools/test_workbuddy_models.mjs
