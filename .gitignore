@@ -33,6 +33,7 @@ __pycache__/
 !/tools/refresh-qoder-intl-auth.mjs
 !/tools/refresh-doubao-auth.mjs
 !/tools/workbuddy-cli.cjs
+!/tools/test_api_keys.mjs
 !/tools/test_auto_checkin.mjs
 !/tools/test_completion_gateway.mjs
 !/tools/test_doubao_account.mjs
@@ -41,6 +42,7 @@ __pycache__/
 !/tools/test_dsml_mixed.mjs
 !/tools/test_harness_reasoning_gateway.mjs
 !/tools/test_markup.mjs
+!/tools/test_network_access.mjs
 !/tools/test_provider_routing.mjs
 !/tools/test_qoder_compaction.mjs
 !/tools/test_qoder_desktop_session.mjs

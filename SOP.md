@@ -4,7 +4,7 @@
 
 ## 1. 每次开始前
 
-1. 确认 Harness 的协议是 **OpenAI Chat Completions**，Base URL 以 `/v1` 结尾，启用鉴权时使用网关密钥。通过 `GET /v1/models` 选择实际返回的 `provider::model`，排障记录完整模型 ID。
+1. 确认 Harness 的协议是 **OpenAI Chat Completions**，Base URL 以 `/v1` 结尾，API Key 填有效的网关密钥。密钥可在网关本机网页创建和撤销。通过 `GET /v1/models` 选择实际返回的 `provider::model`，排障记录完整模型 ID。
 2. 检查 `GET /health` 与 `GET /v1/status`，记录目标入口、`build`、`pid` 和 `startedAt`。经过局域网或中转时，在网关主机和客户端入口各查一次。双击 `start.bat` 可能复用已有进程，核对构建号和启动时间才能确认切换。
 3. 核对目标账号和状态。右栏确认自动签到和积分，或用 `GET /v1/checkin` 与 `GET /v1/quota?provider=<通道>` 只读检查。Trae 和 SOLO 共用账号。自动签到在启动后检查并定时复查，同账号按周期去重。
 4. 「今日已用」「本月已用」读网关本地账本，按北京时间分期。只按可观察的额度变动或实际计费记录累计，保留厂商单位。`—` 表示暂缺记录。更换电脑后从新账本开始。

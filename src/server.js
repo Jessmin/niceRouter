@@ -25,6 +25,8 @@ import { createUsageLedger, creditObservation } from './usage-periods.js';
 import { desktopClientStatuses } from './client-status.js';
 import { pickDesktopFolder, saveDesktopFolder } from './desktop-folders.js';
 import { desktopInstallInFolder } from './desktop-installs.js';
+import { createApiKeyStore } from './api-keys.js';
+import { gatewayLocalPeer, gatewayNetworkAllowed } from './network-access.js';
 
 const sourceRoot = join(config.rootDir, 'src');
 const buildHasher = createHash('sha256');
@@ -80,10 +82,9 @@ const ADAPTERS = {
 if (!Object.hasOwn(ADAPTERS, config.adapter)) {
   throw new Error(`未知 ADAPTER='${config.adapter}'，可选通道：${Object.keys(ADAPTERS).join(' / ')}`);
 }
-const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(config.host.toLowerCase());
-const qoderDesktopAuthAllowed = Boolean(isLoopback || config.gatewayKey);
-if (qoderDesktopAuthAllowed) hydrateQoderDesktopSessions();
+hydrateQoderDesktopSessions();
 const pendingDesktopFolders = new Set();
+const apiKeys = createApiKeyStore({ file: join(config.rootDir, 'config', 'api-keys.json'), legacyKey: config.gatewayKey });
 
 /**
  * 多 provider 注册表（SOP §1.2）
@@ -218,15 +219,47 @@ async function readBody(req, limit = 8 * 1024 * 1024) {
 }
 
 function authorized(req) {
-  if (!config.gatewayKey) return true;
-  return (req.headers.authorization || '') === `Bearer ${config.gatewayKey}`;
+  const token = /^Bearer ([^\s]+)$/i.exec(req.headers.authorization || '')?.[1];
+  return Boolean(token && apiKeys.authenticate(token));
+}
+
+function localBrowserOrigin(req) {
+  const host = req.headers.host || '';
+  if (!gatewayLocalPeer(req.socket.remoteAddress) || !gatewayLocalPeer(req.socket.localAddress)
+    || !/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host)) return '';
+  try { return new URL(`http://${host}`).origin; } catch { return ''; }
 }
 
 function desktopSetupOrigin(req) {
-  const host = req.headers.host || '';
-  const localPeer = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
-  if (process.platform !== 'win32' || !localPeer || !/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host)) return '';
-  try { return new URL(`http://${host}`).origin; } catch { return ''; }
+  return process.platform === 'win32' ? localBrowserOrigin(req) : '';
+}
+
+async function handleApiKeys(req, res, path, origin) {
+  res.setHeader('cache-control', 'no-store');
+  const requestOrigin = req.headers.origin;
+  if (!origin || ((requestOrigin || req.method !== 'GET') && requestOrigin !== origin)) {
+    return oaError(res, 403, '请在运行网关的电脑上打开本机网页管理 API 密钥。', 'permission_error');
+  }
+  try {
+    if (path === '/admin/api-keys' && req.method === 'GET') return json(res, 200, { keys: apiKeys.list() });
+    if (path === '/admin/api-keys' && req.method === 'POST') {
+      if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+        return oaError(res, 415, '请使用 JSON 提供密钥名称。', 'invalid_request_error');
+      }
+      const body = await readBody(req, 4096).catch(() => null);
+      if (typeof body?.name !== 'string') return oaError(res, 400, '请输入密钥名称。', 'invalid_request_error');
+      return json(res, 201, apiKeys.create(body.name));
+    }
+    const id = /^\/admin\/api-keys\/([a-zA-Z0-9_-]{1,80})$/.exec(path)?.[1];
+    if (id && req.method === 'DELETE') {
+      if (!apiKeys.revoke(id)) return oaError(res, 404, '未找到此 API 密钥。', 'invalid_request_error');
+      return json(res, 200, { ok: true });
+    }
+    return oaError(res, 404, '未找到密钥管理操作。', 'invalid_request_error');
+  } catch (error) {
+    if (error instanceof TypeError) return oaError(res, 400, '密钥名称须为 1 到 80 个字符。', 'invalid_request_error');
+    return oaError(res, 500, error?.code === 'api_key_storage_error' ? error.message : 'API 密钥操作失败。');
+  }
 }
 
 async function handleDesktopFolder(req, res) {
@@ -241,7 +274,7 @@ async function handleDesktopFolder(req, res) {
   if (!body || typeof body.provider !== 'string' || Object.keys(body).length !== 1) {
     return oaError(res, 400, '请选择要配置的客户端。', 'invalid_request_error');
   }
-  const clients = desktopClientStatuses(enabledProviders().map(({ name }) => name), qoderDesktopAuthAllowed, pendingDesktopFolders);
+  const clients = desktopClientStatuses(enabledProviders().map(({ name }) => name), pendingDesktopFolders);
   const client = clients.find(({ name }) => name === body.provider);
   if (!client) return oaError(res, 400, '未知客户端。', 'invalid_request_error');
   if (!client.needsInstallFolder) return oaError(res, 409, '此客户端当前无需选择安装文件夹。', 'invalid_request_error');
@@ -507,29 +540,30 @@ async function handleChat(req, res) {
   }
 }
 
-// 监听 0.0.0.0 = 局域网内任何设备都能直接用，不需要密钥。
-// 想加一道锁的话启动时设 GATEWAY_KEY，此时访问方要在「设置 → 网关密钥」里填同一串。
 const listensOnAll = config.host === '0.0.0.0' || config.host === '::';
 
 function lanAddresses() {
   const out = [];
-  for (const [name, list] of Object.entries(os.networkInterfaces())) {
+  const interfaces = os.networkInterfaces();
+  for (const [name, list] of Object.entries(interfaces)) {
     for (const ni of list || []) {
-      if (ni.family === 'IPv4' && !ni.internal) out.push({ name, address: ni.address });
+      if (ni.family === 'IPv4' && !ni.internal && gatewayNetworkAllowed(ni.address, ni.address, interfaces)) {
+        out.push({ name, address: ni.address });
+      }
     }
   }
   return out;
 }
 
-if (listensOnAll && !config.gatewayKey) {
-  log('  免密模式：局域网内任何设备都能直接调用（要加锁就设 GATEWAY_KEY）');
-}
-
 export const server = http.createServer(async (req, res) => {
+  if (!gatewayNetworkAllowed(req.socket.remoteAddress, req.socket.localAddress)) {
+    return oaError(res, 403, '网关仅允许本机、内网和 ZeroTier 访问。', 'permission_error');
+  }
   let url;
   try { url = new URL(req.url, 'http://localhost'); }
   catch { return oaError(res, 400, '无效的请求地址。', 'invalid_request_error'); }
   const path = url.pathname;
+  const origin = localBrowserOrigin(req);
   const t0 = Date.now();
   res.on('finish', () => {
     // 静态资源太吵，只记接口调用
@@ -538,24 +572,28 @@ export const server = http.createServer(async (req, res) => {
   });
 
   if (req.method === 'GET' && path === '/health') {
-    // 无鉴权：让局域网里的设备在还没填密钥时也能探到网关活着、也知道地址
+    res.setHeader('cache-control', 'no-store');
     return json(res, 200, {
       ok: true,
-      adapter: config.adapter,
-      providers: enabledProviders().map((p) => p.name),
-      models: allModels().length,
+      service: 'nicerouter',
+      build: BUILD,
+      pid: process.pid,
       host: config.host,
-      lan: listensOnAll ? lanAddresses() : [],
-      gatewayKeyRequired: Boolean(config.gatewayKey),
+      gatewayKeyRequired: true,
+      apiKeyRequired: true,
+      canManageApiKeys: Boolean(origin),
     });
   }
+
+  if (path.startsWith('/admin/')) return await handleApiKeys(req, res, path, origin);
 
   if (req.method === 'GET' && !path.startsWith('/v1/')) {
     return serveStatic(res, path);
   }
 
   if (!authorized(req)) {
-    return oaError(res, 401, '网关密钥无效（在设置里填写）', 'authentication_error');
+    res.setHeader('www-authenticate', 'Bearer');
+    return oaError(res, 401, '请提供有效的 API 密钥。', 'authentication_error');
   }
 
   try {
@@ -574,12 +612,14 @@ export const server = http.createServer(async (req, res) => {
           hasQuota: typeof adapter.quota === 'function',
           supportsTools: Boolean(adapter.supportsTools),
         })),
-        clients: desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed, pendingDesktopFolders),
+        clients: desktopClientStatuses(providers.map(({ name }) => name), pendingDesktopFolders),
         desktopSetup: { canPickFolder: Boolean(desktopSetupOrigin(req)), restartRequired: pendingDesktopFolders.size > 0 },
         hasToken: Boolean(config.trae.token),
         hasUpstreamKey: Boolean(config.upstream.apiKey),
         upstreamBase: config.upstream.baseUrl || '',
-        gatewayKeyRequired: Boolean(config.gatewayKey),
+        gatewayKeyRequired: true,
+        apiKeyRequired: true,
+        canManageApiKeys: Boolean(origin),
         host: config.host,
         lan: listensOnAll ? lanAddresses() : [],
         // 前端 renderModels 依赖对象结构 {id,display,provider,context}
@@ -590,6 +630,9 @@ export const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/v1/desktop-folder') return await handleDesktopFolder(req, res);
 
     if (req.method === 'POST' && path === '/v1/token') {
+      if (!origin || (req.headers.origin && req.headers.origin !== origin)) {
+        return oaError(res, 403, '请在网关本机设置 Trae 授权。', 'permission_error');
+      }
       if (!PROVIDERS.trae.enabled() && !PROVIDERS.solo.enabled() && config.adapter !== 'trae' && config.adapter !== 'solo') {
         return oaError(res, 400, '当前没有需要 token 的通道', 'invalid_request_error');
       }
@@ -670,9 +713,6 @@ export const server = http.createServer(async (req, res) => {
       const provider = String(b.provider || '');
       const p = PROVIDERS[provider];
       if (!p || !p.enabled()) return oaError(res, 404, `未知或未启用的 provider: '${provider}'`, 'invalid_request_error');
-      if (provider === 'minimax-code' && b.action === 'claim' && !config.gatewayKey) {
-        return oaError(res, 403, 'MiniMax Code 手动领取需要启用网关密钥，后台自动签到可用', 'permission_error');
-      }
       if (typeof p.adapter.checkin !== 'function') {
         return oaError(res, 501, `${provider} 没有签到机制或尚未实现`, 'not_implemented');
       }
@@ -712,7 +752,7 @@ server.listen(config.port, config.host, () => {
   }
   log(`  默认通道: ${defaultProvider().name}（模型 ID 可用 provider::model 前缀跨通道调用）`);
   const providers = enabledProviders();
-  const clients = desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed);
+  const clients = desktopClientStatuses(providers.map(({ name }) => name));
   log(`  客户端  : 识别到 ${clients.filter(({ installed }) => installed).length} 个桌面客户端，${providers.length} 个通道已接入`);
   for (const { name, adapter } of providers) {
     log(`  通道    : ${name.padEnd(10)} ${adapter.models().length} 个模型${typeof adapter.quota === 'function' ? '  [积分可查]' : ''}`);
@@ -720,7 +760,7 @@ server.listen(config.port, config.host, () => {
   for (const client of clients) {
     if (client.state === 'setup_required') log(`  待配置  : ${client.name} · ${client.message}`);
   }
-  log(`  密钥   : ${config.gatewayKey ? '已启用' : '未启用'}`);
+  log('  API    : 必须携带密钥，可在本机网页设置中管理');
   autoCheckin.start();
 });
 

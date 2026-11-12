@@ -54,9 +54,9 @@ fillTraeDesktopHeaders(traeHeaders, { base: traeBase, payBase: traePayBase });
 
 export const config = {
   port: Number(process.env.PORT || 8787),
-  // 监听地址：127.0.0.1（仅本机）/ 0.0.0.0（局域网可访问）
-  host: process.env.HOST || '127.0.0.1',
-  // 留空 = 免密，局域网任何设备直接用；设了则访问方需在网页设置里填同一串
+  // 默认监听所有 IPv4 接口，服务端只接受本机和内网来源。
+  host: process.env.HOST || '0.0.0.0',
+  // 已部署的旧 GATEWAY_KEY 可继续作为显式 API 密钥。
   gatewayKey: process.env.GATEWAY_KEY || '',
 
   // 未带 provider 前缀的请求默认走 SOLO；各真实通道仍可通过模型前缀独立使用。

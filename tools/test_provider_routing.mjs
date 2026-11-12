@@ -4,7 +4,7 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,7 @@ const env = { ...inherited, HOST: '127.0.0.1', AUTO_CHECKIN_ENABLED: '0',
   QODER_WORKER: join(temporary, 'disabled'), QODER_INTL_WORKER: join(temporary, 'disabled'),
   WORKBUDDY_ENABLED: '0', MINIMAX_CODE_ENABLED: '0', DOUBAO_ENABLED: '0', UPSTREAM_KEY: '' };
 let upstreamRequests = 0;
+let apiHeaders = {};
 const upstream = http.createServer(async (req, res) => {
   assert.equal(req.url, '/v1/chat/completions');
   const pieces = []; for await (const piece of req) pieces.push(piece);
@@ -53,7 +54,7 @@ async function launch(overrides = {}, ready = true) {
   assert.fail(stderr || 'Fixture gateway did not start');
 }
 const post = (base, body) => fetch(base + '/v1/chat/completions', { method: 'POST',
-  headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'fixture' }], ...body }),
+  headers: { 'content-type': 'application/json', ...apiHeaders }, body: JSON.stringify({ messages: [{ role: 'user', content: 'fixture' }], ...body }),
   signal: AbortSignal.timeout(3000) });
 try {
   await cp(join(source, 'src'), join(temporary, 'src'), { recursive: true });
@@ -64,7 +65,27 @@ try {
   await writeFile(join(temporary, 'config', 'models.json'), '{"models":[{"id":"fixture"}]}');
   await writeFile(join(temporary, 'config', 'trae-payload.json'), '{}');
   const empty = await launch();
-  const emptyStatus = await (await fetch(empty + '/v1/status')).json();
+  const health = await (await fetch(empty + '/health')).json();
+  assert.equal(health.apiKeyRequired, true);
+  assert.equal(health.canManageApiKeys, true);
+  assert.equal((await fetch(empty + '/v1/status')).status, 401);
+  assert.equal((await fetch(empty + '/v1/models', { headers: { authorization: 'Bearer arbitrary' } })).status, 401);
+  assert.equal((await post(empty, { model: 'fixture' })).status, 401);
+  const adminPath = empty + '/admin/api-keys';
+  const createKey = (origin) => fetch(adminPath, { method: 'POST',
+    headers: { 'content-type': 'application/json', ...(origin && { origin }) }, body: JSON.stringify({ name: 'Harness fixture' }) });
+  assert.equal((await createKey()).status, 403);
+  assert.equal((await createKey('http://unrelated.invalid')).status, 403);
+  const created = await createKey(empty);
+  assert.equal(created.status, 201);
+  assert.equal(created.headers.get('cache-control'), 'no-store');
+  const { key, entry } = await created.json();
+  apiHeaders = { authorization: `Bearer ${key}` };
+  const listed = await (await fetch(adminPath)).json();
+  assert.deepEqual(listed.keys, [entry]);
+  assert.ok(!JSON.stringify(listed).includes(key));
+  assert.ok(!(await readFile(join(temporary, 'config', 'api-keys.json'), 'utf8')).includes(key));
+  const emptyStatus = await (await fetch(empty + '/v1/status', { headers: apiHeaders })).json();
   assert.equal(emptyStatus.defaultProvider, 'solo');
   assert.deepEqual(emptyStatus.providers, []);
   assert.equal(emptyStatus.clients.length, 6);
@@ -72,13 +93,13 @@ try {
   const windows = process.platform === 'win32';
   assert.deepEqual(emptyStatus.desktopSetup, { canPickFolder: windows, restartRequired: false });
   const pick = (body, headers = {}) => fetch(empty + '/v1/desktop-folder', { method: 'POST',
-    headers: { 'content-type': 'application/json', origin: empty, ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(3000) });
+    headers: { 'content-type': 'application/json', origin: empty, ...apiHeaders, ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(3000) });
   assert.equal((await pick({ provider: 'trae' }, { origin: 'http://unrelated.invalid' })).status, 403);
   assert.equal((await pick({ provider: 'trae' }, { host: 'unrelated.invalid', origin: 'http://unrelated.invalid' })).status, 403);
   assert.equal((await pick({ provider: 'trae', directory: 'C:\\arbitrary' })).status, windows ? 400 : 403);
   assert.equal((await pick({ provider: 'constructor' })).status, windows ? 400 : 403);
   assert.equal((await pick({ provider: 'doubao' })).status, windows ? 409 : 403);
-  assert.deepEqual((await (await fetch(empty + '/v1/models')).json()).data, []);
+  assert.deepEqual((await (await fetch(empty + '/v1/models', { headers: apiHeaders })).json()).data, []);
   assert.equal((await post(empty, {})).status, 503);
   assert.equal((await post(empty, { model: 'fixture' })).status, 400);
   assert.equal((await post(empty, { model: 'mock::fixture' })).status, 404);
@@ -104,7 +125,7 @@ try {
   const two = await launch({ QODER_EXE: process.execPath, QODER_WORKER: worker, MINIMAX_CODE_ENABLED: '1',
     MINIMAX_CODE_REGION: 'cn', MINIMAX_CODE_DATA_DIR: dataDir,
     MINIMAX_CODE_INSTALL_DIR: join(temporary, 'missing-minimax-install') });
-  const twoStatus = await (await fetch(two + '/v1/status')).json();
+  const twoStatus = await (await fetch(two + '/v1/status', { headers: apiHeaders })).json();
   assert.deepEqual(twoStatus.providers.map(({ name }) => name), ['qoder', 'minimax-code']);
   const clients = Object.fromEntries(twoStatus.clients.map((client) => [client.name, client]));
   assert.equal(clients.qoder.state, 'setup_required');
@@ -117,13 +138,13 @@ try {
   assert.match(clients['minimax-code'].message, /客户端版本/);
   assert.ok(!JSON.stringify(twoStatus.clients).includes('fixture-auth-not-public'));
   assert.ok(!JSON.stringify(twoStatus.clients).includes(temporary));
-  const activeModels = (await (await fetch(two + '/v1/models')).json()).data;
+  const activeModels = (await (await fetch(two + '/v1/models', { headers: apiHeaders })).json()).data;
   assert.deepEqual([...new Set(activeModels.map(({ id }) => id.split('::')[0]))], ['qoder', 'minimax-code']);
 
   upstream.listen(0, '127.0.0.1'); await once(upstream, 'listening');
   const upstreamEnv = { UPSTREAM_BASE: `http://127.0.0.1:${upstream.address().port}/v1`, UPSTREAM_KEY: 'fixture-only' };
   const alternate = await launch(upstreamEnv);
-  const alternateStatus = await (await fetch(alternate + '/v1/status')).json();
+  const alternateStatus = await (await fetch(alternate + '/v1/status', { headers: apiHeaders })).json();
   assert.equal(alternateStatus.defaultProvider, 'solo');
   assert.deepEqual(alternateStatus.providers.map(({ name }) => name), ['openai']);
   const prefixed = await (await post(alternate, { model: 'openai::fixture' })).json();
@@ -135,6 +156,9 @@ try {
   assert.equal(bare.choices[0].message.content, 'ROUTE_FIXTURE_OK');
   assert.equal((await post(configured, { model: 'mock::fixture' })).status, 404);
   assert.equal(upstreamRequests, 2);
+  const revoke = await fetch(adminPath + '/' + entry.id, { method: 'DELETE', headers: { origin: empty } });
+  assert.equal(revoke.status, 200);
+  assert.equal((await fetch(configured + '/v1/models', { headers: apiHeaders })).status, 401);
   console.log('PASS provider routing and desktop setup status with only two active providers');
 } finally {
   for (const child of children) if (child.exitCode === null) {

@@ -9,21 +9,20 @@ Cursor、Dify、n8n……）把 `base_url` 指过来就能直接跑。
 | 场景 | 地址 |
 | --- | --- |
 | 本机 | `http://127.0.0.1:8787/v1` |
-| 局域网（别的电脑 / 手机上的 App） | `http://<这台机器的局域网IP>:8787/v1` |
+| 内网或 ZeroTier | `http://<网关电脑的内网IP>:8787/v1` |
 
 具体 IP 看启动窗口里打印的「局域网(网卡名)」那几行，或者打开网页
 「设置 → 局域网访问」。
 
 ## 鉴权
 
-默认在本机免密。`Authorization` 头写什么都行，但很多 SDK 强制要求非空，
-所以随便填一个占位值即可：
+所有 `/v1/*` 调用都需要 API 密钥。在网关电脑的本机网页打开「设置 → API 密钥管理」，创建并复制密钥。下文示例使用 `NICEROUTER_API_KEY` 环境变量保存你创建的密钥。
 
 ```
-Authorization: Bearer sk-any
+Authorization: Bearer <你的 API 密钥>
 ```
 
-启动时设了 `GATEWAY_KEY` 就必须填对应的值。启用局域网访问时，请在目标机设置自己的网关密钥。[迁移与启动](README.md)
+已有 `GATEWAY_KEY` 仍可作为 API 密钥。访问范围按 TCP 连接的实际地址判断，支持本机、私有内网和直连 ZeroTier。[迁移与启动](README.md)
 
 ## 端点
 
@@ -36,7 +35,7 @@ Authorization: Bearer sk-any
 | `GET` | `/v1/quota` | 各通道积分 / 套餐 / 签到奖励包 |
 | `GET` | `/v1/checkin` | 只读签到状态；可加 `?provider=trae` |
 | `POST` | `/v1/checkin` | 默认查询；body `{provider, action:"claim"}` 才领取。trae/solo 共享签到 |
-| `GET` | `/health` | 存活探针（无鉴权） |
+| `GET` | `/health` | 存活探针和基本运行状态，无需密钥 |
 
 `/v1/completions`、`/v1/embeddings`、`/v1/images/*` **没有实现**，调用会 404。
 
@@ -85,13 +84,13 @@ WorkBuddy 支持说明文字后以 Markdown JSON 代码块包装的完整 `{ "to
 
 MiniMax Code 默认使用本机国内版登录，模型 ID 示例为 `minimax-code::MiniMax-M3.1-Flash`。
 网关优先向桌面客户端获取官方短期凭据。桌面客户端关闭后，网关仍可使用当前有效凭据直至到期。
-免密网关上的 MiniMax Code 签到由后台执行。启用 `GATEWAY_KEY` 后，可通过 API 手动领取。
+MiniMax Code 签到由后台执行。可携带 API 密钥手动领取。
 `MINIMAX_CODE_ENABLED=0` 可关闭该通道。
 
 ## 先取模型名
 
 ```bash
-curl -s http://127.0.0.1:8787/v1/models
+curl -s http://127.0.0.1:8787/v1/models -H "Authorization: Bearer $NICEROUTER_API_KEY"
 ```
 
 模型 ID 一定要用这里返回的原样字符串，**后缀 `__dev` / `__max` 不能省**：
@@ -111,7 +110,7 @@ Doubao-Seed-2.1-Pro__max
 
 ```bash
 curl -s http://127.0.0.1:8787/v1/chat/completions \
-  -H "Authorization: Bearer sk-any" \
+  -H "Authorization: Bearer $NICEROUTER_API_KEY" \
   -H "content-type: application/json" \
   -d '{
     "model": "glm-5__max",
@@ -147,6 +146,7 @@ curl -s http://127.0.0.1:8787/v1/chat/completions \
 
 ```bash
 curl -sN http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer $NICEROUTER_API_KEY" \
   -H "content-type: application/json" \
   -d '{"model":"glm-5__max","stream":true,
        "messages":[{"role":"user","content":"数到五"}]}'
@@ -157,11 +157,12 @@ curl -sN http://127.0.0.1:8787/v1/chat/completions \
 ## Python（openai 官方 SDK）
 
 ```python
+import os
 from openai import OpenAI
 
 client = OpenAI(
     base_url="http://127.0.0.1:8787/v1",
-    api_key="sk-any",          # 免密时随便填，不能空
+    api_key=os.environ["NICEROUTER_API_KEY"],
     timeout=600,               # solo 通道会排队，别用默认的 60 秒
 )
 
@@ -192,7 +193,7 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({
   baseURL: 'http://127.0.0.1:8787/v1',
-  apiKey: 'sk-any',
+  apiKey: process.env.NICEROUTER_API_KEY,
   timeout: 600000,
 });
 
@@ -212,7 +213,7 @@ for await (const chunk of stream) {
 ```js
 const res = await fetch('http://127.0.0.1:8787/v1/chat/completions', {
   method: 'POST',
-  headers: { 'content-type': 'application/json' },
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.NICEROUTER_API_KEY}` },
   body: JSON.stringify({
     model: 'glm-5__max',
     messages: [{ role: 'user', content: '你好' }],
@@ -228,6 +229,7 @@ console.log(data.choices[0].message.content);
 
 ```bash
 curl -s http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer $NICEROUTER_API_KEY" \
   -H "content-type: application/json" \
   -d '{
     "model": "solo::deepseek-v4.1-flash__max",
@@ -358,7 +360,8 @@ CLI通道的 `cli_first_event_ms` 仅表示首次CLI事件，不能当作上游H
 
 | 状态 | `error.type` | 常见原因 |
 | --- | --- | --- |
-| 401 | `authentication_error` | 服务端设了 `GATEWAY_KEY` 但没传或传错 |
+| 401 | `authentication_error` | 未提供有效的 API 密钥，或该密钥已撤销 |
+| 403 | `permission_error` | 来源地址不在允许范围，或该操作需要在本机执行 |
 | 400 | `authentication_error` | 上游 Trae token 缺失 / 过期（约 14 天） |
 | 404 | `invalid_request_error` | 模型名不存在（看 `available:` 后面那串） |
 | 400 | `invalid_request_error` | `messages` 为空 |
@@ -378,7 +381,7 @@ CLI通道的 `cli_first_event_ms` 仅表示首次CLI事件，不能当作上游H
 | 字段 | 值 |
 | --- | --- |
 | API Base / Base URL | `http://<IP>:8787/v1` |
-| API Key | `sk-any`（免密时随便填） |
+| API Key | 在本机网页创建的 API 密钥 |
 | Model | 从 `/v1/models` 里挑，例如 `glm-5__max` |
 
 Cherry Studio / Chatbox / Open WebUI / LobeChat / Dify / n8n 都是这一套。

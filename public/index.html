@@ -233,7 +233,18 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .fieldset label{font-size:12.5px;font-weight:500}
 .fieldset .hint{font-size:11.5px;color:var(--muted);line-height:1.55}
 #clientSetupField[hidden]{display:none}
-#clientSetupTitle{margin:0;font-size:12.5px;font-weight:500}
+#clientSetupTitle,#apiKeyManagerTitle{margin:0;font-size:12.5px;font-weight:500}
+#apiKeyManager[hidden],#issuedApiKey[hidden],#traeTokenField[hidden],#lanField[hidden]{display:none}
+#apiKeyList{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.api-key-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px}
+.api-key-info{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.api-key-form{display:flex;align-items:center;gap:8px}
+.api-key-form input{flex:1;min-width:0}
+.api-key-action{flex:none;padding:5px 9px;font-size:12px;white-space:nowrap}
+.api-key-action:disabled{opacity:.5;cursor:default}
+.api-key-actions{display:flex;flex-wrap:wrap;gap:6px}
+#issuedApiKey{padding:8px;border:1px solid var(--border);border-radius:8px}
+#issuedApiKeyValue{font-family:ui-monospace,monospace}
 #clientSetupList,#desktopPromptList{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .client-setup-row{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px}
 .client-setup-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -410,15 +421,32 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   </div>
   <div class="dlg-body">
     <div class="fieldset">
-      <label for="keyIn">网关密钥</label>
-      <input type="password" id="keyIn" placeholder="留空即可（免密）">
-      <div class="hint">默认免密，什么都不用填。只有服务端启动时设了 GATEWAY_KEY 才需要填同一串。</div>
+      <label for="keyIn">API 密钥</label>
+      <input type="password" id="keyIn" placeholder="输入此浏览器使用的 API 密钥" autocomplete="off">
+      <div class="hint">网页和其他客户端都需要 API 密钥。外部客户端使用 <code>Authorization: Bearer &lt;API 密钥&gt;</code>。</div>
     </div>
+    <section class="fieldset" id="apiKeyManager" aria-labelledby="apiKeyManagerTitle" hidden>
+      <h4 id="apiKeyManagerTitle">API 密钥管理</h4>
+      <form id="apiKeyForm" class="api-key-form">
+        <input type="text" id="apiKeyName" aria-label="密钥名称" placeholder="密钥名称，例如 DeepSeek Harness" maxlength="80" required autocomplete="off">
+        <button type="submit" class="btn ghost api-key-action" id="createApiKey">创建密钥</button>
+      </form>
+      <div class="fieldset" id="issuedApiKey" hidden>
+        <label for="issuedApiKeyValue">新密钥仅在创建后显示，请妥善保存。</label>
+        <input type="text" id="issuedApiKeyValue" readonly autocomplete="off" spellcheck="false">
+        <div class="api-key-actions">
+          <button type="button" class="btn ghost api-key-action" id="copyApiKey">复制密钥</button>
+          <button type="button" class="btn ghost api-key-action" id="useApiKey">填入浏览器设置</button>
+        </div>
+      </div>
+      <p class="desktop-setup-notice" id="apiKeyFeedback" role="status"></p>
+      <ul id="apiKeyList"></ul>
+    </section>
     <div class="fieldset" id="lanField" hidden>
       <label>局域网访问</label>
       <div id="lanBox"></div>
     </div>
-    <div class="fieldset">
+    <div class="fieldset" id="traeTokenField">
       <label for="tokenIn">Trae CN / SOLO 授权</label>
       <input type="password" id="tokenIn" placeholder="Cloud-IDE-JWT 令牌">
       <div class="hint">已识别的 Trae CN 安装会提供应用信息。此处填写的令牌只在本次运行中保留。</div>
@@ -713,14 +741,16 @@ function authHeaders() {
 async function api(path, opts = {}) {
   const res = await fetch(path, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  if (!res.ok) throw Object.assign(new Error(data.error?.message || ('HTTP ' + res.status)), { status: res.status });
   return data;
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v25';
+const UI_VERSION = 'v26';
 let retryTimer = 0;
 let pendingModelList = null;
+let keySettingsPrompted = false;
+let apiKeyRejected = false;
 
 function showBanner(on, detail) {
   const b = $('#banner');
@@ -734,16 +764,17 @@ function scheduleRetry() {
   clearTimeout(retryTimer);
   retryTimer = setTimeout(async () => {
     const s = await refreshStatus();
-    if (!s) scheduleRetry();
+    if (!s && !apiKeyRejected) scheduleRetry();
   }, 3000);
 }
 
 // 把浏览器侧的真实情况回传一份到服务端日志，排查"没回复"时用
 function report(payload) {
+  if (state.health?.apiKeyRequired && !state.settings.key) return;
   try {
     fetch('/v1/report', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ ...payload, v: UI_VERSION }),
       keepalive: true,
     }).catch(() => {});
@@ -757,7 +788,9 @@ async function refreshStatus() {
     const s = await api('/v1/status', { cache: 'no-store' });
     const models = Array.isArray(s.models) ? s.models : [];
     state.adapter = s.adapter;
-    state.health = { lan: s.lan || [], host: s.host, gatewayKeyRequired: s.gatewayKeyRequired };
+    state.health = { lan: s.lan || [], host: s.host, apiKeyRequired: s.apiKeyRequired || s.gatewayKeyRequired, canManageApiKeys: s.canManageApiKeys };
+    apiKeyRejected = false;
+    keySettingsPrompted = false;
     // A catalogue refresh must not change the model of an in-flight answer.
     if (state.streaming) pendingModelList = models;
     else {
@@ -766,6 +799,7 @@ async function refreshStatus() {
     }
     renderClientSetup(s.clients, models.length, s.desktopSetup);
     renderLanBox();
+    renderApiKeyAccess();
     const dot = $('#dot');
     const defaultAvailable = models.some((model) => (model.provider || providerOf(model.id)) === (s.defaultProvider || s.adapter));
     dot.className = 'dot ' + (defaultAvailable ? 'on' : 'off');
@@ -793,26 +827,28 @@ async function refreshStatus() {
     } catch (e2) {
       /* 服务不可达 */
     }
-    if (health && health.gatewayKeyRequired) {
-      $('#statusLabel').textContent = '需要网关密钥';
-      detail =
-        '网关在 <code>' + esc(location.host || '本机') + '</code> 上运行，但要求 <code>Authorization: Bearer &lt;网关密钥&gt;</code>。<br>' +
-        '请在「设置 → 网关密钥」里填入启动时设置的 <code>GATEWAY_KEY</code>。';
-      if (health.lan && health.lan.length) {
-        detail +=
-          '<br>局域网内其它设备可以用：' +
-          health.lan.map((n) => '<code>http://' + esc(n.address) + ':' + esc(location.port || '8787') + '</code>').join('、');
-      }
-      state.health = health;
+    if (health && (health.apiKeyRequired || health.gatewayKeyRequired) && (e.status === 401 || !state.settings.key)) {
+      apiKeyRejected = true;
+      $('#statusLabel').textContent = state.settings.key ? 'API 密钥无效' : '需要 API 密钥';
+      detail = state.settings.key ? '当前 API 密钥无效或已撤销。请在设置中换用有效密钥。'
+        : health.canManageApiKeys ? '请在「设置 → API 密钥管理」创建密钥，然后填入浏览器设置。'
+          : '请在设置中填入 API 密钥。可在运行网关的电脑上创建密钥。';
+      state.health = { ...health, apiKeyRequired: true };
+      if (state.streaming) pendingModelList = [];
+      else applyModelList([]);
       renderLanBox();
-      const dlg = $('#dlg');
-      if (dlg && !dlg.open) {
-        dlg.showModal();
-        setTimeout(() => $('#keyIn').focus(), 50);
+      renderApiKeyAccess();
+      loadQuota();
+      if (!keySettingsPrompted && !$('#dlg').open && !$('#desktopPrompt').open) {
+        openSettings();
+        const focus = health.canManageApiKeys && !state.settings.key ? '#apiKeyName' : '#keyIn';
+        $(focus).focus();
       }
-    } else if (/密钥|401/.test(e.message)) {
-      $('#statusLabel').textContent = '密钥无效';
-      detail = '网关密钥不正确，请到「设置」里重新填写。';
+      if ($('#dlg').open) keySettingsPrompted = true;
+    } else if (e.status === 401) {
+      apiKeyRejected = true;
+      $('#statusLabel').textContent = 'API 密钥无效';
+      detail = '请在设置中填入有效的 API 密钥。';
     } else if (location.protocol === 'file:' || (location.port && location.port !== '8787')) {
       detail =
         '当前打开的是 <code>' + esc(location.protocol === 'file:' ? location.href.slice(0, 60) : location.host) +
@@ -821,7 +857,8 @@ async function refreshStatus() {
       detail = '服务进程可能已停止。在 trae-gateway 目录双击 <code>start.bat</code> 启动，然后点右边「重试」。';
     }
     showBanner(true, detail);
-    scheduleRetry();
+    if (apiKeyRejected) clearTimeout(retryTimer);
+    else scheduleRetry();
     return null;
   }
 }
@@ -1190,10 +1227,16 @@ async function send() {
   const input = $('#input');
   const text = input.value.trim();
   if (!text) return;
+  if (state.health?.apiKeyRequired && (!state.settings.key || apiKeyRejected)) {
+    if (!$('#dlg').open) openSettings();
+    $('#keyIn').focus();
+    return;
+  }
   if (!state.models.length) {
     // 页面可能是先于服务打开的空壳，先就地重连一次，别让用户干等
     $('#statusLabel').textContent = '正在重连网关…';
     const status = await refreshStatus();
+    if (!status && apiKeyRejected) return;
     if (!state.models.length) {
       $('#statusLabel').textContent = status ? '暂无已启用通道' : '网关未连接';
       if (status && !$('#clientSetupBtn').hidden) $('#hint').textContent = '暂无可选模型';
@@ -1308,6 +1351,9 @@ async function send() {
 
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
+      if (res.status === 401 && /API 密钥|API key|网关密钥/i.test(d.error?.message || '')) {
+        refreshStatus();
+      }
       throw new Error((d.error && d.error.message) || ('HTTP ' + res.status));
     }
 
@@ -1425,17 +1471,140 @@ function renderLanBox() {
   }
   f.hidden = false;
   const port = location.port || '8787';
-  const needKey = Boolean(state.health && state.health.gatewayKeyRequired);
   box.innerHTML =
     lan
-      .map(
-        (n) =>
-          '<div><code>http://' + esc(n.address) + ':' + esc(port) + '</code> <span class="hint">' + esc(n.name) + '</span></div>',
-      )
+      .map((n) => '<div><code>http://' + esc(n.address.includes(':') ? '[' + n.address + ']' : n.address) + ':' + esc(port) + '</code> <span class="hint">' + esc(n.name) + '</span></div>')
       .join('') +
-    '<div class="hint">在同一局域网的手机/电脑上直接打开上面的地址即可。' +
-    (needKey ? '首次访问要在「网关密钥」里填启动时设置的 GATEWAY_KEY。' : '当前是免密模式，不用填密钥。') +
-    'Windows 防火墙需要放行该端口的入站 TCP。</div>';
+    '<div class="hint">在同一局域网或 ZeroTier 网络上打开对应地址，并填入 API 密钥。</div>';
+}
+
+let apiKeyMutationPending = false;
+let apiKeyListRequest = 0;
+
+function renderApiKeyAccess() {
+  const section = $('#apiKeyManager');
+  const wasHidden = section.hidden;
+  section.hidden = state.health?.canManageApiKeys !== true;
+  $('#traeTokenField').hidden = state.health?.canManageApiKeys === false;
+  if (wasHidden && !section.hidden && $('#dlg').open) loadApiKeys();
+}
+
+function apiKeyFeedback(message, isError = false) {
+  const feedback = $('#apiKeyFeedback');
+  feedback.textContent = message;
+  feedback.dataset.error = String(isError);
+}
+
+async function manageApiKey(path = '', options = {}) {
+  const res = await fetch('/admin/api-keys' + path, {
+    cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000), ...options,
+    headers: { 'content-type': 'application/json' },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error?.message || ('HTTP ' + res.status));
+  return data;
+}
+
+function renderApiKeyList(keys) {
+  const list = $('#apiKeyList');
+  list.replaceChildren();
+  if (!keys.length) {
+    const empty = document.createElement('li');
+    empty.className = 'hint';
+    empty.textContent = '还没有创建 API 密钥。';
+    list.append(empty);
+    return;
+  }
+  for (const key of keys) {
+    const row = document.createElement('li');
+    row.className = 'api-key-row';
+    const info = document.createElement('div');
+    info.className = 'api-key-info';
+    const name = document.createElement('span');
+    name.textContent = key.name;
+    const metadata = document.createElement('span');
+    metadata.className = 'hint';
+    const date = new Date(key.createdAt);
+    metadata.textContent = [key.prefix, Number.isFinite(date.getTime()) ? USAGE_START_FORMAT.format(date) : ''].filter(Boolean).join(' · ');
+    const revoke = document.createElement('button');
+    revoke.type = 'button';
+    revoke.className = 'btn ghost api-key-action';
+    revoke.textContent = '撤销';
+    revoke.setAttribute('aria-label', '撤销 ' + key.name);
+    revoke.disabled = apiKeyMutationPending;
+    revoke.onclick = () => revokeApiKey(key);
+    info.append(name, metadata);
+    row.append(info, revoke);
+    list.append(row);
+  }
+}
+
+async function loadApiKeys() {
+  if (state.health?.canManageApiKeys !== true) return;
+  const request = ++apiKeyListRequest;
+  try {
+    const data = await manageApiKey();
+    if (request === apiKeyListRequest) renderApiKeyList(Array.isArray(data.keys) ? data.keys : []);
+  } catch (e) {
+    if (request === apiKeyListRequest) apiKeyFeedback('读取密钥失败。' + e.message, true);
+  }
+}
+
+async function changeApiKeys(action) {
+  if (apiKeyMutationPending || state.health?.canManageApiKeys !== true) return;
+  apiKeyMutationPending = true;
+  apiKeyFeedback('');
+  const selector = '#apiKeyManager button, #closeDlg, #cancelDlg, #saveDlg';
+  for (const button of document.querySelectorAll(selector)) button.disabled = true;
+  try {
+    await action();
+    await loadApiKeys();
+  } catch (e) {
+    apiKeyFeedback(e.message, true);
+  } finally {
+    apiKeyMutationPending = false;
+    for (const button of document.querySelectorAll(selector)) button.disabled = false;
+  }
+}
+
+function createApiKey(e) {
+  e.preventDefault();
+  const input = $('#apiKeyName');
+  const name = input.value.trim();
+  if (!name) {
+    apiKeyFeedback('请输入密钥名称。', true);
+    input.focus();
+    return;
+  }
+  return changeApiKeys(async () => {
+    const data = await manageApiKey('', { method: 'POST', body: JSON.stringify({ name }) });
+    if (typeof data.key !== 'string' || !data.key) throw new Error('未收到新密钥。');
+    $('#issuedApiKeyValue').value = data.key;
+    $('#issuedApiKey').dataset.keyId = data.entry?.id || '';
+    $('#issuedApiKey').hidden = false;
+    input.value = '';
+    $('#issuedApiKeyValue').focus();
+    $('#issuedApiKeyValue').select();
+  });
+}
+
+function revokeApiKey(key) {
+  if (!window.confirm(`撤销「${key.name}」？使用此密钥的客户端将立即失去 API 访问权限。`)) return;
+  return changeApiKeys(async () => {
+    await manageApiKey('/' + encodeURIComponent(key.id), { method: 'DELETE' });
+    if ($('#issuedApiKey').dataset.keyId === key.id) {
+      if ($('#keyIn').value === $('#issuedApiKeyValue').value) $('#keyIn').value = '';
+      clearIssuedApiKey();
+    }
+    await refreshStatus();
+    apiKeyFeedback('密钥已撤销。' + (apiKeyRejected ? '请为此浏览器换用有效密钥。' : ''));
+  });
+}
+
+function clearIssuedApiKey() {
+  $('#issuedApiKeyValue').value = '';
+  $('#issuedApiKey').hidden = true;
+  delete $('#issuedApiKey').dataset.keyId;
 }
 
 /* ---------------- 积分 / 签到 ---------------- */
@@ -1557,6 +1726,12 @@ function quotaCard(name, q, ci, automation, shared = false) {
 
 let quotaLoading = false;
 async function loadQuota(force = false) {
+  if (state.health?.apiKeyRequired && (!state.settings.key || apiKeyRejected)) {
+    $('#quotaBody').innerHTML = '<div class="qnotice">填写有效的 API 密钥后可查看账户额度。</div>';
+    $('#quotaBody').setAttribute('aria-busy', 'false');
+    $('#quotaUpdated').textContent = '需要 API 密钥';
+    return;
+  }
   if (quotaLoading) return;
   quotaLoading = true;
   const body = $('#quotaBody');
@@ -1605,8 +1780,11 @@ function openSettings(focusClients = false) {
   $('#tempVal').textContent = Number(state.settings.temp).toFixed(1);
   $('#themeIn').value = state.settings.theme;
   $('#saveMsg').textContent = '';
+  apiKeyFeedback('');
   renderLanBox();
+  renderApiKeyAccess();
   $('#dlg').showModal();
+  loadApiKeys();
   if (focusClients && !$('#clientSetupField').hidden) $('#clientSetupTitle').focus();
 }
 
@@ -1618,23 +1796,26 @@ async function saveAll() {
   saveSettings();
   applyTheme();
 
-  const token = $('#tokenIn').value.trim();
+  const token = $('#traeTokenField').hidden ? '' : $('#tokenIn').value.trim();
   const msg = $('#saveMsg');
+  const status = await refreshStatus();
+  if (!status && apiKeyRejected) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = state.settings.key ? 'API 密钥无效或已撤销。' : '请填入 API 密钥。';
+    $('#keyIn').focus();
+    return;
+  }
   if (token && (state.adapter === 'trae' || state.adapter === 'solo')) {
     try {
-      await fetch('/v1/token', {
+      await api('/v1/token', {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({ token }),
-      }).then(async (r) => {
-        const d = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error((d.error && d.error.message) || ('HTTP ' + r.status));
-        return d;
       });
       state.settings.token = '';
       saveSettings();
       msg.style.color = 'var(--ok)';
-      msg.textContent = '已保存，token 已注入服务端';
+      msg.textContent = '已保存，Trae 授权已生效。';
+      await refreshStatus();
     } catch (e) {
       msg.style.color = 'var(--danger)';
       msg.textContent = 'token 注入失败：' + e.message;
@@ -1642,10 +1823,11 @@ async function saveAll() {
       return;
     }
   } else {
+    msg.style.color = 'var(--ok)';
     msg.textContent = '已保存';
   }
-  await refreshStatus();
-  setTimeout(() => $('#dlg').close(), 700);
+  if (status) loadQuota(true);
+  setTimeout(() => { if (!apiKeyMutationPending) $('#dlg').close(); }, 700);
 }
 
 /* ---------------- boot ---------------- */
@@ -1654,7 +1836,6 @@ function boot() {
     '%c trae-gateway UI ' + UI_VERSION + ' ',
     'background:#5b6cff;color:#fff;padding:2px 6px;border-radius:3px;font-weight:600',
   );
-  report({ t: 'boot', where: location.protocol + '//' + location.host, ua: navigator.userAgent.slice(0, 70) });
   load();
   if (state.convs.length) {
     state.cur = state.convs[0];
@@ -1671,7 +1852,30 @@ function boot() {
   $('#closeDlg').onclick = () => $('#dlg').close();
   $('#cancelDlg').onclick = () => $('#dlg').close();
   $('#saveDlg').onclick = saveAll;
-  $('#dlg').addEventListener('close', maybeShowDesktopPrompt);
+  $('#dlg').addEventListener('close', () => {
+    clearIssuedApiKey();
+    $('#keyIn').value = '';
+    maybeShowDesktopPrompt();
+  });
+  $('#dlg').addEventListener('cancel', (e) => { if (apiKeyMutationPending) e.preventDefault(); });
+  $('#apiKeyForm').onsubmit = createApiKey;
+  $('#copyApiKey').onclick = async () => {
+    const value = $('#issuedApiKeyValue');
+    try {
+      await copyText(value.value);
+      apiKeyFeedback('密钥已复制。');
+    } catch {
+      value.focus();
+      value.select();
+      apiKeyFeedback('请手动复制选中的密钥。', true);
+    }
+  };
+  $('#useApiKey').onclick = () => {
+    const input = $('#keyIn');
+    input.value = $('#issuedApiKeyValue').value;
+    input.focus();
+    apiKeyFeedback('密钥已填入。点击保存后开始使用。');
+  };
   $('#skipDesktopPrompt').onclick = dismissDesktopPrompt;
   $('#desktopPrompt').addEventListener('cancel', (e) => {
     e.preventDefault();
@@ -1745,7 +1949,10 @@ function boot() {
   }
 
   refreshStatus().then((s) => {
-    if (s) loadQuota();
+    if (s) {
+      report({ t: 'boot', where: location.protocol + '//' + location.host, ua: navigator.userAgent.slice(0, 70) });
+      loadQuota();
+    }
     if (s && $('#clientSetupField').hidden && (s.adapter === 'trae' || s.adapter === 'solo') && !s.hasToken) {
       $('#hint').textContent = '还没填上游 token —— 点左下角齿轮';
     }

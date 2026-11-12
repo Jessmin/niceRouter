@@ -8,7 +8,7 @@ import { workbuddyConfig } from './workbuddy-config.js';
 
 const found = (name) => Boolean(desktopInstall(name));
 
-export function desktopClientStatuses(enabledNames, qoderDesktopAuthAllowed = true, pendingFolders) {
+export function desktopClientStatuses(enabledNames, pendingFolders) {
   const available = new Set(enabledNames);
   const row = (name, installed, issue, { disabled = false, missingInstall = !installed, channels = [name] } = {}) => {
     const providers = channels.filter((channel) => available.has(channel));
@@ -31,9 +31,7 @@ export function desktopClientStatuses(enabledNames, qoderDesktopAuthAllowed = tr
   const qoderWorker = existsSync(config.qoder.workerPath);
   const intlWorker = existsSync(config.qoderIntl.workerPath);
   const intlExe = existsSync(config.qoderIntl.exePath);
-  const qoderAuthIssue = !qoderDesktopAuthAllowed
-    ? '局域网监听需设置 GATEWAY_KEY 后才会自动读取桌面授权。'
-    : process.env.AUTO_DISCOVER_DESKTOP_AUTH === '0' ? '桌面授权自动读取已关闭，详见 README。' : '';
+  const qoderAuthIssue = process.env.AUTO_DISCOVER_DESKTOP_AUTH === '0' ? '桌面授权自动读取已关闭，详见 README。' : '';
   const buddy = workbuddyConfig;
   const buddyExe = existsSync(buddy.exePath);
   const buddyRuntime = buddyExe && existsSync(buddy.cliPath) && existsSync(join(buddy.installDir, 'resources', 'app.asar'));

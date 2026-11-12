@@ -79,11 +79,13 @@ node --env-file-if-exists=.env tools/refresh-doubao-auth.mjs
 
 ## 接入 DeepSeek Harness
 
-在 DeepSeek Harness 新建自定义模型 API，协议选择 **OpenAI Chat Completions**。Base URL 使用 `http://127.0.0.1:8787/v1`，模型 ID 从 `/v1/models` 复制。设置了 `GATEWAY_KEY` 时填入该密钥，本机免密时可使用占位值 `sk-any`。
+在运行网关的电脑上打开本机网页，到「设置 → API 密钥管理」创建密钥并复制。完整密钥只在创建后显示，可为不同客户端分别创建，撤销后立即拒绝该密钥的新请求。网页聊天和 `/v1/*` 接口都需要有效密钥。
+
+在 DeepSeek Harness 新建自定义模型 API，协议选择 **OpenAI Chat Completions**。同一台电脑的 Base URL 使用 `http://127.0.0.1:8787/v1`，从内网或 ZeroTier 连接时改用网关对应的内网地址。API Key 填创建的密钥，模型 ID 从 `/v1/models` 复制。
 
 ```powershell
 $gateway = 'http://127.0.0.1:8787'
-$headers = @{ Authorization = 'Bearer sk-any' }
+$headers = @{ Authorization = "Bearer $env:NICEROUTER_API_KEY" }
 Invoke-RestMethod "$gateway/health"
 Invoke-RestMethod "$gateway/v1/status" -Headers $headers
 (Invoke-RestMethod "$gateway/v1/models" -Headers $headers).data
@@ -95,14 +97,15 @@ Invoke-RestMethod "$gateway/v1/status" -Headers $headers
 
 | 配置 | 用途 |
 | --- | --- |
-| `HOST`、`PORT` | 默认监听 `127.0.0.1:8787`。通过局域网访问时，将 `HOST` 设为 `0.0.0.0` 并配置强随机 `GATEWAY_KEY` |
+| `HOST`、`PORT` | 默认监听 `0.0.0.0:8787`，按实际连接来源允许本机、私有内网和 ZeroTier。旧配置若设了 `HOST=127.0.0.1`，可改为 `HOST=0.0.0.0` 启用内网访问 |
+| `GATEWAY_KEY` | 已配置的旧密钥仍可调用 API。在 `.env` 清除该值并重启即可停用它 |
 | `ADAPTER` | 无前缀模型 ID 的默认通道，默认为 `solo`。带前缀时按前缀路由 |
 | `AUTO_CHECKIN_ENABLED` | 默认在启动后检查签到，运行期间每 15 分钟复查。设为 `0` 可关闭 |
-| `AUTO_DISCOVER_DESKTOP_AUTH` | 设为 `0` 可关闭 Qoder 桌面授权的自动读取。监听局域网时，启用自动读取需要设置 `GATEWAY_KEY` |
+| `AUTO_DISCOVER_DESKTOP_AUTH` | 设为 `0` 可关闭 Qoder 桌面授权的自动读取 |
 | `GATEWAY_OPEN_BROWSER` | 设为 `0` 可禁止 `start.bat` 自动打开浏览器 |
 
 额度和签到结果可在网页或 `/v1/quota`、`/v1/checkin` 查看。用量账本记录网关观察到的扣费或可匹配的累计消耗变化，按北京时间分日和分月，重启后在本机继续记录。
 
 **豆包签到的已知问题**。部分领取请求返回 `710010702`，官方活动页点击签到也曾失败。网关保留失败状态，并在下一个检查周期复查。
 
-`.env`、`config/*-session.json`、DPAPI 授权、登录缓存、日志与账本请留在本机。迁移时在目标电脑上登录所需客户端，并按上文准备需要单独配置的会话。[运维与故障定位](SOP.md)
+`.env`、`config/api-keys.json`、`config/*-session.json`、DPAPI 授权、登录缓存、日志与账本请留在本机。迁移时在目标电脑上登录所需客户端，创建 API 密钥，并按上文准备需要单独配置的会话。[运维与故障定位](SOP.md)

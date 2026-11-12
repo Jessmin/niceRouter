@@ -17,6 +17,13 @@ function openGateway() {
 
 async function gatewayAlreadyRunning() {
   try {
+    const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(1000), redirect: 'error' });
+    if (res.ok) {
+      const health = await res.json();
+      if (health.service === 'nicerouter' && Number.isInteger(health.pid) && /^[0-9a-f]{12}$/.test(health.build)) return true;
+    }
+  } catch { /* Also try the status endpoint used by older gateways. */ }
+  try {
     const res = await fetch(`${url}/v1/status`, {
       ...(config.gatewayKey && { headers: { authorization: `Bearer ${config.gatewayKey}` } }),
       signal: AbortSignal.timeout(1000),
