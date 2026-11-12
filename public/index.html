@@ -234,13 +234,18 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .fieldset .hint{font-size:11.5px;color:var(--muted);line-height:1.55}
 #clientSetupField[hidden]{display:none}
 #clientSetupTitle{margin:0;font-size:12.5px;font-weight:500}
-#clientSetupList{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+#clientSetupList,#desktopPromptList{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .client-setup-row{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px}
 .client-setup-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .client-setup-state{flex:none;font-size:11px;color:var(--muted)}
 .client-setup-state[data-state=enabled]{color:var(--ok)}
 .client-setup-state[data-state=setup_required]{color:var(--accent)}
 .client-setup-message{margin:3px 0 0;color:var(--muted);font-size:11.5px;line-height:1.55;overflow-wrap:anywhere}
+.desktop-prompt-intro,.desktop-setup-notice{margin:0;font-size:12px;line-height:1.55;color:var(--muted)}
+.desktop-setup-notice[data-error=true]{color:var(--danger)}
+.desktop-setup-notice:empty{display:none}
+.client-folder-button{margin-top:8px;padding:5px 10px;font-size:12px}
+.client-folder-button:disabled{opacity:.5;cursor:default}
 .fieldset input[type=text],.fieldset input[type=password],.fieldset textarea{
   border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;
   background:var(--bg);outline:none;width:100%;font-size:13px;
@@ -421,6 +426,8 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <section class="fieldset" id="clientSetupField" aria-labelledby="clientSetupTitle" hidden>
       <h4 id="clientSetupTitle" tabindex="-1">客户端接入状态</h4>
       <ul id="clientSetupList"></ul>
+      <p class="desktop-setup-notice" id="clientSetupRestart" role="status"></p>
+      <p class="desktop-setup-notice" id="clientSetupFeedback" role="status"></p>
     </section>
     <div class="fieldset">
       <label for="sysIn">系统提示词</label>
@@ -452,10 +459,26 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   </div>
 </dialog>
 
+<dialog id="desktopPrompt" aria-labelledby="desktopPromptTitle" aria-describedby="desktopPromptIntro">
+  <div class="dlg-head">
+    <h3 id="desktopPromptTitle" tabindex="-1">补充客户端安装目录</h3>
+  </div>
+  <div class="dlg-body">
+    <p class="desktop-prompt-intro" id="desktopPromptIntro">已安装的客户端可以选择安装文件夹。暂时不用的可跳过，以后在设置里补选。</p>
+    <ul id="desktopPromptList"></ul>
+    <p class="desktop-setup-notice" id="desktopPromptRestart" role="status"></p>
+    <p class="desktop-setup-notice" id="desktopPromptFeedback" role="status"></p>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn ghost" type="button" id="skipDesktopPrompt">跳过</button>
+  </div>
+</dialog>
+
 <script>
 const LS = {
   convs: 'tg.convs.v1',
   settings: 'tg.settings.v1',
+  desktopPromptDismissed: 'tg.desktop-prompt-dismissed.v1',
 };
 const $ = (s) => document.querySelector(s);
 
@@ -695,7 +718,7 @@ async function api(path, opts = {}) {
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v23';
+const UI_VERSION = 'v24';
 let retryTimer = 0;
 let pendingModelList = null;
 
@@ -741,7 +764,7 @@ async function refreshStatus() {
       pendingModelList = null;
       applyModelList(models);
     }
-    renderClientSetup(s.clients, models.length);
+    renderClientSetup(s.clients, models.length, s.desktopSetup);
     renderLanBox();
     const dot = $('#dot');
     const defaultAvailable = models.some((model) => (model.provider || providerOf(model.id)) === (s.defaultProvider || s.adapter));
@@ -758,7 +781,7 @@ async function refreshStatus() {
     showBanner(false);
     return s;
   } catch (e) {
-    renderClientSetup();
+    if (!$('#desktopPrompt').open && !pickingFolderFor) renderClientSetup();
     $('#dot').className = 'dot off';
     $('#statusLabel').textContent = '网关未连接';
     let detail;
@@ -805,12 +828,22 @@ async function refreshStatus() {
 
 const CLIENT_LABEL = { trae: 'Trae CN / SOLO', qoder: 'Qoder CN', 'qoder-intl': 'Qoder 国际版', workbuddy: 'WorkBuddy', 'minimax-code': 'MiniMax Code', doubao: '豆包' };
 const CLIENT_STATE_LABEL = { enabled: '已接入', setup_required: '待配置', not_detected: '未检测到', disabled: '已停用' };
+const promptedClients = new Set();
+const dismissedClients = new Set();
+try {
+  const saved = JSON.parse(localStorage.getItem(LS.desktopPromptDismissed) || '[]');
+  if (Array.isArray(saved)) for (const name of saved) {
+    if (Object.hasOwn(CLIENT_LABEL, name)) dismissedClients.add(name);
+  }
+} catch {
+  /* File or storage restrictions only affect persistence of dismissals. */
+}
+let desktopClients = [];
+let desktopSetup = {};
+let pickingFolderFor = '';
 
-function renderClientSetup(clients, modelCount = 0) {
-  const entries = Array.isArray(clients) ? clients.filter((item) => item && Object.hasOwn(CLIENT_LABEL, item.name) && Object.hasOwn(CLIENT_STATE_LABEL, item.state)) : [];
-  const list = $('#clientSetupList');
+function renderDesktopClientList(list, entries, showMessages) {
   list.replaceChildren();
-  $('#clientSetupField').hidden = entries.length === 0;
   for (const item of entries) {
     const row = document.createElement('li');
     row.className = 'client-setup-row';
@@ -822,19 +855,133 @@ function renderClientSetup(clients, modelCount = 0) {
     const status = document.createElement('span');
     status.className = 'client-setup-state';
     status.dataset.state = item.state;
-    status.textContent = item.state === 'setup_required' && item.installed ? '已检测到 · 待配置' : CLIENT_STATE_LABEL[item.state];
+    status.textContent = item.folderPending ? '目录已保存'
+      : !showMessages && item.needsInstallFolder ? '未找到安装目录'
+        : item.state === 'setup_required' && item.installed ? '已检测到 · 待配置' : CLIENT_STATE_LABEL[item.state];
     heading.append(name, status);
     row.append(heading);
-    if (typeof item.message === 'string' && item.message) {
+    if (showMessages && !item.folderPending && typeof item.message === 'string' && item.message) {
       const message = document.createElement('p');
       message.className = 'client-setup-message';
       message.textContent = item.message;
       row.append(message);
     }
+    if (desktopSetup.canPickFolder && item.needsInstallFolder && !item.folderPending) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn ghost client-folder-button';
+      button.dataset.provider = item.name;
+      button.setAttribute('aria-label', `选择 ${CLIENT_LABEL[item.name]} 的安装文件夹`);
+      button.textContent = '选择文件夹';
+      button.disabled = Boolean(pickingFolderFor);
+      button.onclick = () => pickDesktopFolder(item.name);
+      row.append(button);
+    }
     list.append(row);
   }
+}
+
+function renderClientSetup(clients, modelCount = 0, setup = {}) {
+  desktopClients = Array.isArray(clients) ? clients.filter((item) => item && Object.hasOwn(CLIENT_LABEL, item.name) && Object.hasOwn(CLIENT_STATE_LABEL, item.state)) : [];
+  desktopSetup = setup || {};
+  const list = $('#clientSetupList');
+  const focusedList = document.activeElement?.closest('#clientSetupList, #desktopPromptList');
+  const focusedProvider = document.activeElement?.dataset?.provider;
+  renderDesktopClientList(list, desktopClients, true);
+  $('#clientSetupField').hidden = desktopClients.length === 0;
   const button = $('#clientSetupBtn');
-  button.hidden = !entries.length || (modelCount > 0 && !entries.some(({ state }) => state === 'setup_required' || state === 'not_detected'));
+  button.hidden = !desktopClients.length || (modelCount > 0 && !desktopSetup.restartRequired &&
+    !desktopClients.some(({ state }) => state === 'setup_required' || state === 'not_detected'));
+  renderDesktopRestart();
+  if ($('#desktopPrompt').open) renderDesktopPromptList();
+  else maybeShowDesktopPrompt();
+  if (focusedList && focusedProvider && !pickingFolderFor) {
+    const controls = [...focusedList.querySelectorAll('.client-folder-button')];
+    (controls.find((item) => item.dataset.provider === focusedProvider) || controls[0] ||
+      (focusedList === list ? $('#clientSetupTitle') : $('#skipDesktopPrompt'))).focus();
+  }
+}
+
+function renderDesktopRestart() {
+  const message = desktopSetup.restartRequired ? '安装目录已保存。关闭网关后重新运行 start.bat 生效。' : '';
+  $('#clientSetupRestart').textContent = message;
+  $('#desktopPromptRestart').textContent = message;
+}
+
+function renderDesktopPromptList() {
+  renderDesktopClientList($('#desktopPromptList'), desktopClients.filter(({ name }) => promptedClients.has(name)), false);
+  const waiting = desktopClients.some(({ name, needsInstallFolder, folderPending }) => promptedClients.has(name) && needsInstallFolder && !folderPending);
+  $('#skipDesktopPrompt').textContent = waiting ? '跳过' : '完成';
+}
+
+function maybeShowDesktopPrompt() {
+  const dialog = $('#desktopPrompt');
+  if (!desktopSetup.canPickFolder || dialog.open || $('#dlg').open || state.streaming) return;
+  const missing = desktopClients.filter(({ name, needsInstallFolder, folderPending }) => needsInstallFolder && !folderPending && !dismissedClients.has(name));
+  if (!missing.length) return;
+  promptedClients.clear();
+  for (const { name } of missing) promptedClients.add(name);
+  renderDesktopPromptList();
+  dialog.showModal();
+  $('#desktopPromptTitle').focus();
+}
+
+function saveDesktopDismissals() {
+  try {
+    localStorage.setItem(LS.desktopPromptDismissed, JSON.stringify([...dismissedClients]));
+  } catch {
+    /* A dismissal still applies in the current tab. */
+  }
+}
+
+function dismissDesktopPrompt() {
+  for (const { name, needsInstallFolder, folderPending } of desktopClients) {
+    if (promptedClients.has(name) && needsInstallFolder && !folderPending) dismissedClients.add(name);
+  }
+  saveDesktopDismissals();
+  $('#desktopPrompt').close();
+}
+
+function desktopFolderFeedback(message, isError = false) {
+  for (const id of ['#clientSetupFeedback', '#desktopPromptFeedback']) {
+    const feedback = $(id);
+    feedback.dataset.error = String(isError);
+    feedback.textContent = message;
+  }
+}
+
+async function pickDesktopFolder(provider) {
+  if (pickingFolderFor) return;
+  pickingFolderFor = provider;
+  for (const button of document.querySelectorAll('.client-folder-button')) button.disabled = true;
+  $('#skipDesktopPrompt').disabled = true;
+  desktopFolderFeedback(`请在 Windows 窗口中选择 ${CLIENT_LABEL[provider]} 的安装文件夹。`);
+  try {
+    const result = await api('/v1/desktop-folder', { method: 'POST', body: JSON.stringify({ provider }) });
+    desktopSetup.restartRequired = result.restartRequired === true;
+    renderDesktopRestart();
+    if (result.selected) {
+      if (dismissedClients.delete(provider)) saveDesktopDismissals();
+      desktopFolderFeedback('');
+      const updated = desktopClients.map((item) => item.name === provider ? { ...item, folderPending: true } : item);
+      renderClientSetup(updated, state.models.length, desktopSetup);
+      await refreshStatus();
+    } else desktopFolderFeedback('已取消选择。');
+  } catch (e) {
+    desktopFolderFeedback(e.message, true);
+  } finally {
+    pickingFolderFor = '';
+    for (const button of document.querySelectorAll('.client-folder-button')) button.disabled = false;
+    const skip = $('#skipDesktopPrompt');
+    skip.disabled = false;
+    const inPrompt = $('#desktopPrompt').open;
+    if (inPrompt || $('#dlg').open) {
+      const list = $(inPrompt ? '#desktopPromptList' : '#clientSetupList');
+      const controls = [...list.querySelectorAll('.client-folder-button')];
+      (controls.find((item) => item.dataset.provider === provider) || controls[0] ||
+        (inPrompt ? skip : $('#clientSetupTitle'))).focus();
+    }
+  }
 }
 
 function renderModels() {
@@ -1525,6 +1672,12 @@ function boot() {
   $('#closeDlg').onclick = () => $('#dlg').close();
   $('#cancelDlg').onclick = () => $('#dlg').close();
   $('#saveDlg').onclick = saveAll;
+  $('#dlg').addEventListener('close', maybeShowDesktopPrompt);
+  $('#skipDesktopPrompt').onclick = dismissDesktopPrompt;
+  $('#desktopPrompt').addEventListener('cancel', (e) => {
+    e.preventDefault();
+    if (!pickingFolderFor) dismissDesktopPrompt();
+  });
   $('#tempIn').oninput = (e) => { $('#tempVal').textContent = Number(e.target.value).toFixed(1); };
   $('#themeIn').onchange = (e) => { state.settings.theme = e.target.value; applyTheme(); };
   $('#menuBtn').onclick = () => $('#side').classList.toggle('open');

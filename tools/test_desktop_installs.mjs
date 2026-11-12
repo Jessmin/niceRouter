@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { desktopInstall } from '../src/desktop-installs.js';
+import { desktopFolderCanOverride, desktopInstall, desktopInstallInFolder } from '../src/desktop-installs.js';
 import { readMiniMaxCodeDesktopVersion } from '../src/minimax-code-auth.js';
 
 const env = { LOCALAPPDATA: 'C:\\Fixture\\Local', ProgramFiles: 'C:\\Program Files' };
@@ -15,7 +15,7 @@ function fixture(files, entries = [], overrides = {}) {
   const normal = (filename) => path.win32.normalize(filename).toLowerCase();
   const known = new Set(files.map(normal));
   return { platform: 'win32', env, home: 'C:\\Fixture', registry: () => entries, lastBrowser: () => '',
-    file: (filename) => known.has(normal(filename)), ...overrides };
+    file: (filename) => known.has(normal(filename)), folders: {}, ...overrides };
 }
 
 test('use a verified default desktop install before querying the registry', () => {
@@ -30,6 +30,56 @@ test('use a verified default desktop install before querying the registry', () =
 test('find system-wide installs', () => {
   const dir = 'C:\\Program Files\\Trae CN';
   assert.equal(desktopInstall('trae', fixture([`${dir}\\Trae CN.exe`])).installDir, dir);
+});
+
+test('validate a selected folder using the expected executable and packaged runtime', () => {
+  const dir = 'E:\\自定义 安装\\Qoder';
+  const exePath = path.win32.join(dir, 'Qoder.exe');
+  const workerPath = qoderWorker(dir, 'qoder-agent-sdk');
+  assert.deepEqual(desktopInstallInFolder('qoder-intl', dir, fixture([exePath, workerPath])), {
+    installDir: dir, exePath, workerPath,
+  });
+  assert.equal(desktopInstallInFolder('qoder', dir, fixture([exePath, workerPath])), null);
+  assert.equal(desktopInstallInFolder('qoder-intl', dir, fixture([exePath, qoderWorker(dir, 'qoder-cn-agent-sdk')])), null);
+  assert.equal(desktopInstallInFolder('qoder-intl', dir, fixture([exePath], [], {
+    env: { QODER_INTL_WORKER: workerPath },
+  })), null);
+  assert.equal(desktopInstallInFolder('qoder-intl', path.win32.dirname(dir), fixture([exePath, workerPath])), null);
+
+  const storeDir = 'E:\\Store\\Doubao';
+  const storeApp = path.win32.join(storeDir, 'app');
+  const storeExe = path.win32.join(storeApp, 'Doubao.exe');
+  assert.equal(desktopInstallInFolder('doubao', storeDir, fixture([storeExe])).installDir, storeApp);
+});
+
+test('never probe selected UNC, device, drive-relative or non-Windows paths', () => {
+  const options = { platform: 'win32', file: () => assert.fail('Unexpected filesystem probe') };
+  for (const folder of ['\\\\share\\WorkBuddy', '\\\\?\\E:\\WorkBuddy', 'E:WorkBuddy', '.\\WorkBuddy', 'E:\\data:WorkBuddy']) {
+    assert.equal(desktopInstallInFolder('workbuddy', folder, options), null);
+  }
+  assert.equal(desktopInstallInFolder('workbuddy', 'E:\\WorkBuddy', { ...options, platform: 'linux' }), null);
+});
+
+test('use a valid saved folder before searching and preserve explicit overrides', () => {
+  const dir = 'E:\\自定义 安装\\WorkBuddy';
+  const defaultDir = 'C:\\Fixture\\Local\\Programs\\WorkBuddyAI';
+  const override = 'F:\\WorkBuddy';
+  const files = [dir, defaultDir, override].flatMap((folder) => [path.win32.join(folder, 'WorkBuddy.exe'),
+    path.win32.join(folder, 'resources', 'app.asar'), workbuddyWorker(folder)]);
+  const folders = { workbuddy: dir };
+  assert.equal(desktopInstall('workbuddy', fixture(files, [], { folders })).installDir, dir);
+  assert.equal(desktopInstall('workbuddy', fixture(files, [], {
+    folders: { workbuddy: 'E:\\Moved' },
+  })).installDir, defaultDir);
+  assert.equal(desktopInstall('workbuddy', fixture(files, [], {
+    folders, env: { ...env, WORKBUDDY_INSTALL_DIR: override },
+  })).installDir, override);
+  assert.equal(desktopInstall('workbuddy', fixture(files, [], {
+    folders, env: { ...env, WORKBUDDY_CLI_PATH: workbuddyWorker(override) },
+  })).workerPath, workbuddyWorker(override));
+  assert.equal(desktopFolderCanOverride('workbuddy', env), true);
+  assert.equal(desktopFolderCanOverride('workbuddy', { ...env, WORKBUDDY_CLI_PATH: 'invalid' }), false);
+  assert.equal(desktopFolderCanOverride('qoder-intl', { ...env, QODER_INTL_EXE: 'missing-node.exe' }), false);
 });
 
 test('prefer an intact package and separate Qoder CN from the international client', () => {

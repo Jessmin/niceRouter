@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { normalizeDesktopFolder, readDesktopFolders } from './desktop-folders.js';
 
 const qoderWorker = (pkg) => [
   'resources', 'app.asar.unpacked', 'node_modules', '@qoder-ai', pkg, 'dist', '_worker', 'qoder-worker-runtime.obf.mjs',
@@ -39,6 +40,8 @@ const products = {
     folders: ['Doubao'], exes: ['Doubao.exe'], installEnv: 'DOUBAO_INSTALL_DIR',
   },
 };
+
+const savedFolders = process.platform === 'win32' ? readDesktopFolders() : {};
 
 let uninstallEntries;
 function readUninstallEntries() {
@@ -87,10 +90,44 @@ function doubaoLastBrowser(profile) {
   } catch { return ''; }
 }
 
+function inspectInstall(name, installDir, { file, join, exeOverride, workerOverride }) {
+  const spec = products[name];
+  const exePath = exeOverride || spec.exes.map((name) => join(installDir, name)).find(file);
+  if (!exePath || (exeOverride && !file(exeOverride))) return null;
+  const worker = spec.worker && (workerOverride || join(installDir, ...spec.worker));
+  const workerPath = worker && file(worker) ? worker : null;
+  const runtime = spec.resources && join(installDir, ...spec.resources);
+  const complete = (!spec.worker || workerPath)
+    && (!runtime || file(runtime) || (name === 'minimax-code' && ['app', 'app.asar.unpacked'].some((folder) =>
+      file(join(installDir, 'resources', folder, 'package.json')))));
+  return { installation: { installDir, exePath, workerPath }, complete };
+}
+
+export function desktopFolderCanOverride(name, env = process.env) {
+  if (!Object.hasOwn(products, name)) return false;
+  const { installEnv, exeEnv, workerEnv } = products[name];
+  if (name === 'qoder-intl' && env.QODER_INTL_EXE && !isFile(env.QODER_INTL_EXE)) return false;
+  return ![installEnv, exeEnv, workerEnv].some((key) => key && env[key]);
+}
+
+/** Validate a chosen folder without using executable or worker overrides. */
+export function desktopInstallInFolder(name, directory, { platform = process.platform, file = isFile } = {}) {
+  if (platform !== 'win32' || !Object.hasOwn(products, name)) return null;
+  const installDir = normalizeDesktopFolder(directory);
+  if (!installDir) return null;
+  const { join } = path.win32;
+  const candidates = name === 'doubao' ? [installDir, join(installDir, 'app')] : [installDir];
+  for (const candidate of candidates) {
+    const found = inspectInstall(name, candidate, { file, join });
+    if (found?.complete) return found.installation;
+  }
+  return null;
+}
+
 /** Locate a desktop executable and its packaged runtime without launching it. */
 export function desktopInstall(name, {
   env = process.env, platform = process.platform, home = homedir(), file = isFile,
-  registry = readUninstallEntries, lastBrowser = doubaoLastBrowser,
+  registry = readUninstallEntries, lastBrowser = doubaoLastBrowser, folders = savedFolders,
 } = {}) {
   if (!Object.hasOwn(products, name)) return null;
   const spec = products[name];
@@ -109,20 +146,15 @@ export function desktopInstall(name, {
     const key = platform === 'win32' ? installDir.toLowerCase() : installDir;
     if (tried.has(key)) return null;
     tried.add(key);
-    const exePath = exeOverride || spec.exes.map((name) => join(installDir, name)).find(file);
-    if (!exePath || (exeOverride && !file(exeOverride))) return null;
-    const worker = spec.worker && (workerOverride || join(installDir, ...spec.worker));
-    const workerPath = worker && file(worker) ? worker : null;
-    const installation = { installDir, exePath, workerPath };
-    found ??= installation;
-    const runtime = spec.resources && join(installDir, ...spec.resources);
-    const complete = (!spec.worker || workerPath)
-      && (!runtime || file(runtime) || (name === 'minimax-code' && ['app', 'app.asar.unpacked'].some((folder) =>
-        file(join(installDir, 'resources', folder, 'package.json')))));
-    return complete ? installation : null;
+    const result = inspectInstall(name, installDir, { file, join, exeOverride, workerOverride });
+    if (!result) return null;
+    found ??= result.installation;
+    return result.complete ? result.installation : null;
   }
 
   if (installOverride || exeOverride) return inspect(installOverride || dirname(exeOverride)) || found;
+  const saved = desktopInstallInFolder(name, folders[name], { file, platform });
+  if (saved) return workerOverride ? inspect(saved.installDir) || found : saved;
   if (name === 'doubao') {
     const exe = lastBrowser(env.DOUBAO_USER_DATA || join(local, 'Doubao', 'User Data'));
     if (exe) {

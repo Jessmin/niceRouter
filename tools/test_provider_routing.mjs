@@ -69,6 +69,15 @@ try {
   assert.deepEqual(emptyStatus.providers, []);
   assert.equal(emptyStatus.clients.length, 6);
   assert.equal(emptyStatus.clients.find(({ name }) => name === 'doubao').state, 'disabled');
+  const windows = process.platform === 'win32';
+  assert.deepEqual(emptyStatus.desktopSetup, { canPickFolder: windows, restartRequired: false });
+  const pick = (body, headers = {}) => fetch(empty + '/v1/desktop-folder', { method: 'POST',
+    headers: { 'content-type': 'application/json', origin: empty, ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(3000) });
+  assert.equal((await pick({ provider: 'trae' }, { origin: 'http://unrelated.invalid' })).status, 403);
+  assert.equal((await pick({ provider: 'trae' }, { host: 'unrelated.invalid', origin: 'http://unrelated.invalid' })).status, 403);
+  assert.equal((await pick({ provider: 'trae', directory: 'C:\\arbitrary' })).status, windows ? 400 : 403);
+  assert.equal((await pick({ provider: 'constructor' })).status, windows ? 400 : 403);
+  assert.equal((await pick({ provider: 'doubao' })).status, windows ? 409 : 403);
   assert.deepEqual((await (await fetch(empty + '/v1/models')).json()).data, []);
   assert.equal((await post(empty, {})).status, 503);
   assert.equal((await post(empty, { model: 'fixture' })).status, 400);
@@ -102,6 +111,7 @@ try {
   assert.match(clients.qoder.message, /登录 Qoder CN 后重启网关/);
   assert.equal(clients.trae.installed, true);
   assert.equal(clients.trae.state, 'setup_required');
+  assert.equal(clients.trae.needsInstallFolder, false);
   assert.deepEqual(clients.trae.providers, []);
   assert.equal(clients['minimax-code'].state, 'setup_required');
   assert.match(clients['minimax-code'].message, /客户端版本/);

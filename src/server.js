@@ -23,6 +23,8 @@ import { CompletionState, completionErrorDetails } from './completion.js';
 import { captureFailedRequest } from './failure-capture.js';
 import { createUsageLedger, creditObservation } from './usage-periods.js';
 import { desktopClientStatuses } from './client-status.js';
+import { pickDesktopFolder, saveDesktopFolder } from './desktop-folders.js';
+import { desktopInstallInFolder } from './desktop-installs.js';
 
 const sourceRoot = join(config.rootDir, 'src');
 const buildHasher = createHash('sha256');
@@ -81,6 +83,7 @@ if (!Object.hasOwn(ADAPTERS, config.adapter)) {
 const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(config.host.toLowerCase());
 const qoderDesktopAuthAllowed = Boolean(isLoopback || config.gatewayKey);
 if (qoderDesktopAuthAllowed) hydrateQoderDesktopSessions();
+const pendingDesktopFolders = new Set();
 
 /**
  * 多 provider 注册表（SOP §1.2）
@@ -193,6 +196,7 @@ async function serveStatic(res, pathname) {
       'content-type': MIME[extname(full)] || 'application/octet-stream',
       'content-length': buf.length,
       'cache-control': extname(full) === '.html' ? 'no-store, must-revalidate' : 'public, max-age=3600',
+      ...(extname(full) === '.html' && { 'content-security-policy': "frame-ancestors 'self'" }),
     });
     res.end(buf);
   } catch {
@@ -216,6 +220,56 @@ async function readBody(req, limit = 8 * 1024 * 1024) {
 function authorized(req) {
   if (!config.gatewayKey) return true;
   return (req.headers.authorization || '') === `Bearer ${config.gatewayKey}`;
+}
+
+function desktopSetupOrigin(req) {
+  const host = req.headers.host || '';
+  const localPeer = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+  if (process.platform !== 'win32' || !localPeer || !/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host)) return '';
+  try { return new URL(`http://${host}`).origin; } catch { return ''; }
+}
+
+async function handleDesktopFolder(req, res) {
+  const origin = desktopSetupOrigin(req);
+  if (!origin || req.headers.origin !== origin) {
+    return oaError(res, 403, '请在运行网关的 Windows 电脑上打开本机网页，再选择文件夹。', 'invalid_request_error');
+  }
+  if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+    return oaError(res, 415, '请选择要配置的客户端。', 'invalid_request_error');
+  }
+  const body = await readBody(req, 1024).catch(() => null);
+  if (!body || typeof body.provider !== 'string' || Object.keys(body).length !== 1) {
+    return oaError(res, 400, '请选择要配置的客户端。', 'invalid_request_error');
+  }
+  const clients = desktopClientStatuses(enabledProviders().map(({ name }) => name), qoderDesktopAuthAllowed, pendingDesktopFolders);
+  const client = clients.find(({ name }) => name === body.provider);
+  if (!client) return oaError(res, 400, '未知客户端。', 'invalid_request_error');
+  if (!client.needsInstallFolder) return oaError(res, 409, '此客户端当前无需选择安装文件夹。', 'invalid_request_error');
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  res.once('close', abort);
+  try {
+    const directory = await pickDesktopFolder({ provider: client.name, signal: controller.signal });
+    if (controller.signal.aborted) return;
+    if (!directory) return json(res, 200, { selected: false, restartRequired: pendingDesktopFolders.size > 0 });
+    const installation = desktopInstallInFolder(client.name, directory);
+    if (!installation) return oaError(res, 422, '这个文件夹里没有找到所选客户端的完整安装。请选择含客户端程序的文件夹。', 'invalid_request_error');
+    try {
+      saveDesktopFolder(client.name, installation.installDir);
+    } catch {
+      return oaError(res, 500, '无法保存安装文件夹。请检查 niceRouter 目录的写入权限。');
+    }
+    pendingDesktopFolders.add(client.name);
+    return json(res, 200, { selected: true, restartRequired: true });
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    if (error?.status === 409) return oaError(res, 409, '已有文件夹选择窗口，请先完成或取消。', 'invalid_request_error');
+    if (error?.status === 400) return oaError(res, 422, '请选择本机磁盘上的客户端安装文件夹。', 'invalid_request_error');
+    return oaError(res, 500, '文件夹选择窗口未完成，请从本机网页重试。');
+  } finally {
+    res.off('close', abort);
+  }
 }
 
 function chunk(id, model, delta, finishReason = null) {
@@ -472,7 +526,9 @@ if (listensOnAll && !config.gatewayKey) {
 }
 
 export const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  let url;
+  try { url = new URL(req.url, 'http://localhost'); }
+  catch { return oaError(res, 400, '无效的请求地址。', 'invalid_request_error'); }
   const path = url.pathname;
   const t0 = Date.now();
   res.on('finish', () => {
@@ -518,7 +574,8 @@ export const server = http.createServer(async (req, res) => {
           hasQuota: typeof adapter.quota === 'function',
           supportsTools: Boolean(adapter.supportsTools),
         })),
-        clients: desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed),
+        clients: desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed, pendingDesktopFolders),
+        desktopSetup: { canPickFolder: Boolean(desktopSetupOrigin(req)), restartRequired: pendingDesktopFolders.size > 0 },
         hasToken: Boolean(config.trae.token),
         hasUpstreamKey: Boolean(config.upstream.apiKey),
         upstreamBase: config.upstream.baseUrl || '',
@@ -529,6 +586,8 @@ export const server = http.createServer(async (req, res) => {
         models: allModels(providers),
       });
     }
+
+    if (req.method === 'POST' && path === '/v1/desktop-folder') return await handleDesktopFolder(req, res);
 
     if (req.method === 'POST' && path === '/v1/token') {
       if (!PROVIDERS.trae.enabled() && !PROVIDERS.solo.enabled() && config.adapter !== 'trae' && config.adapter !== 'solo') {
