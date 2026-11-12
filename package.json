@@ -1,0 +1,15 @@
+{
+  "name": "nicerouter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenAI-compatible local gateway for AI clients",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  }
+}

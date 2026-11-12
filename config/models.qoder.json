@@ -1,0 +1,66 @@
+{
+  "provider": "qoder",
+  "source": "Existing verified CN CLI catalogue (SOP W2)",
+  "models": [
+    {
+      "id": "Auto",
+      "display": "Auto",
+      "context": 200000
+    },
+    {
+      "id": "Fast",
+      "display": "Fast",
+      "context": 200000
+    },
+    {
+      "id": "Qwen3.8-Max",
+      "display": "Qwen3.8-Max",
+      "context": 200000
+    },
+    {
+      "id": "Qwen3.8-Flash",
+      "display": "Qwen3.8-Flash",
+      "context": 200000
+    },
+    {
+      "id": "DeepSeek-V4-Pro",
+      "display": "DeepSeek-V4-Pro",
+      "context": 200000
+    },
+    {
+      "id": "DeepSeek-Flash",
+      "display": "DeepSeek-Flash",
+      "context": 200000
+    },
+    {
+      "id": "GLM-5.3",
+      "display": "GLM-5.3",
+      "context": 200000
+    },
+    {
+      "id": "GLM-5.3-Flash",
+      "display": "GLM-5.3-Flash",
+      "context": 200000
+    },
+    {
+      "id": "Kimi-K3.1-Pro",
+      "display": "Kimi-K3.1-Pro",
+      "context": 200000
+    },
+    {
+      "id": "Kimi-K2.8-Preview",
+      "display": "Kimi-K2.8-Preview",
+      "context": 200000
+    },
+    {
+      "id": "Step-5-Preview",
+      "display": "Step-5-Preview",
+      "context": 200000
+    },
+    {
+      "id": "MiniMax-M3.1-Flash",
+      "display": "MiniMax-M3.1-Flash",
+      "context": 200000
+    }
+  ]
+}

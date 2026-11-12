@@ -1,0 +1,15 @@
+{
+  "_README": [
+    "This is the request body sent to Trae's upstream chat endpoint.",
+    "Placeholders in {{...}} are substituted at runtime; everything else is sent verbatim.",
+    "The fields below are a starting guess. To make it exact: run with TRAE_CAPTURE=1,",
+    "trigger one chat in Trae, then open captures/<timestamp>.json and copy the real",
+    "request body over this template (keeping the placeholders you need)."
+  ],
+  "model": "{{model}}",
+  "messages": {{messages_json}},
+  "stream": {{stream}},
+  "temperature": {{temperature}},
+  "session_id": "{{session_id}}",
+  "request_id": "{{request_id}}"
+}

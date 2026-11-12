@@ -1,0 +1,35 @@
+{
+  "_comment": "服务端 /api/ide/v1/model_list?type=chat 实测返回的内置模型（本账号 5 个）。旧的 19 个 SOLO agent 模型存于 models.agent.json，走加密的 /api/agent/v3/* 通道，暂不可用。",
+  "models": [
+    {
+      "id": "seed_m8",
+      "display": "Doubao-1.5-pro",
+      "type": "chat",
+      "context": 128000
+    },
+    {
+      "id": "Doubao_1_5_thinking_pro",
+      "display": "Doubao-1.5-thinking-pro",
+      "type": "chat",
+      "context": 128000
+    },
+    {
+      "id": "deepseek-R1",
+      "display": "DeepSeek-Reasoner（R1）",
+      "type": "reasoning",
+      "context": 128000
+    },
+    {
+      "id": "deepseek-V3",
+      "display": "DeepSeek-V3",
+      "type": "chat",
+      "context": 128000
+    },
+    {
+      "id": "deepseek-V3-0324",
+      "display": "DeepSeek-V3-0324",
+      "type": "chat",
+      "context": 128000
+    }
+  ]
+}

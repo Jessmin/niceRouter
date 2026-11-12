@@ -1,0 +1,47 @@
+# Local accounts, session state, captures, and builds
+/.env
+/.env.*
+!/.env.example
+/.hdr.json
+/.workbuddy/
+/captures/
+/dist/
+*.dpapi
+*.log
+*.bak
+node_modules/
+__pycache__/
+*.pyc
+
+# Ship model catalogs and templates. Other config files are local.
+/config/*
+!/config/models.json
+!/config/models.doubao.json
+!/config/models.qoder.json
+!/config/models.qoder-intl.json
+!/config/models.solo.json
+!/config/models.workbuddy.json
+!/config/trae-payload.json
+!/config/trae-session.example.json
+
+# Keep local probes, traffic captures, and vendor artifacts out of Git.
+/tools/*
+!/tools/start-gateway.mjs
+!/tools/qoder-cli-login.bat
+!/tools/qoder-desktop-session.mjs
+!/tools/refresh-qoder-auth.mjs
+!/tools/refresh-qoder-intl-auth.mjs
+!/tools/refresh-doubao-auth.mjs
+!/tools/workbuddy-cli.cjs
+!/tools/test_auto_checkin.mjs
+!/tools/test_completion_gateway.mjs
+!/tools/test_doubao_account.mjs
+!/tools/test_dsml_mixed.mjs
+!/tools/test_harness_reasoning_gateway.mjs
+!/tools/test_markup.mjs
+!/tools/test_qoder_compaction.mjs
+!/tools/test_qoder_mixed_close.mjs
+!/tools/test_stream_cancellation.mjs
+!/tools/test_tool_history.mjs
+!/tools/test_usage_periods.mjs
+!/tools/test_workbuddy_models.mjs

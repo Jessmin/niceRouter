@@ -1,0 +1,555 @@
+{
+ "_comment": "solo_agent 通道的真实模型名（来自 get_detail_param?function=solo_agent）。__dev/__max 是同一模型的两档，__max 通常优先。",
+ "models": [
+  {
+   "id": "Doubao-Seed-2.1-Turbo__dev",
+   "display": "Doubao-Seed-2.1-Turbo (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.1-Turbo__max",
+   "display": "Doubao-Seed-2.1-Turbo (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-Evolving__dev",
+   "display": "Doubao-Seed-Evolving (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-Evolving__max",
+   "display": "Doubao-Seed-Evolving (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.1-Pro__dev",
+   "display": "Doubao-Seed-2.1-Pro (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.1-Pro__max",
+   "display": "Doubao-Seed-2.1-Pro (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "computer_use_subagent__dev",
+   "display": "computer_use_subagent (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "computer_use_subagent__max",
+   "display": "computer_use_subagent (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.1-Turbo-auto__dev",
+   "display": "Doubao-Seed-2.1-Turbo-auto (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.1-Turbo-auto__max",
+   "display": "Doubao-Seed-2.1-Turbo-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao_1_6__dev",
+   "display": "Doubao_1_6 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao_1_6__max",
+   "display": "Doubao_1_6 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-Code__dev",
+   "display": "Doubao-Seed-Code (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-Code__max",
+   "display": "Doubao-Seed-Code (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "doubao-for-auto__dev",
+   "display": "doubao-for-auto (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "doubao-for-auto__max",
+   "display": "doubao-for-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.0-Code-auto__dev",
+   "display": "Doubao-Seed-2.0-Code-auto (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao-Seed-2.0-Code-auto__max",
+   "display": "Doubao-Seed-2.0-Code-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "search_agent_model__dev",
+   "display": "search_agent_model (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "search_agent_model__max",
+   "display": "search_agent_model (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "search_agent_dpsk_v4.1_flash__dev",
+   "display": "search_agent_dpsk_v4.1_flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "search_agent_dpsk_v4.1_flash__max",
+   "display": "search_agent_dpsk_v4.1_flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "browser_use_model__dev",
+   "display": "browser_use_model (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "browser_use_model__max",
+   "display": "browser_use_model (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3-flash__dev",
+   "display": "glm-5.3-flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3-flash__max",
+   "display": "glm-5.3-flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3-flashx__dev",
+   "display": "glm-5.3-flashx (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3-flashx__max",
+   "display": "glm-5.3-flashx (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3__dev",
+   "display": "glm-5.3 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.3__max",
+   "display": "glm-5.3 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2.1__dev",
+   "display": "minimax-m2.1 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2.1__max",
+   "display": "minimax-m2.1 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2.1-auto__max",
+   "display": "minimax-m2.1-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2__dev",
+   "display": "minimax-m2 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2__max",
+   "display": "minimax-m2 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m2-auto__max",
+   "display": "minimax-m2-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.2__dev",
+   "display": "glm-5.2 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.2__max",
+   "display": "glm-5.2 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "deepseek-v4.1-flash__dev",
+   "display": "deepseek-v4.1-flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "deepseek-v4.1-flash__max",
+   "display": "deepseek-v4.1-flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Flash-Official__dev",
+   "display": "DeepSeek-V4-Flash-Official (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Flash-Official__max",
+   "display": "DeepSeek-V4-Flash-Official (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Pro-Official__dev",
+   "display": "DeepSeek-V4-Pro-Official (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Pro-Official__max",
+   "display": "DeepSeek-V4-Pro-Official (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.1__dev",
+   "display": "glm-5.1 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5.1__max",
+   "display": "glm-5.1 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5__dev",
+   "display": "glm-5 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-5__max",
+   "display": "glm-5 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.7__dev",
+   "display": "glm-4.7 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.7__max",
+   "display": "glm-4.7 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.7-auto__max",
+   "display": "glm-4.7-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.6-auto__max",
+   "display": "glm-4.6-auto (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Pro__dev",
+   "display": "DeepSeek-V4-Pro (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Pro__max",
+   "display": "DeepSeek-V4-Pro (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Flash__dev",
+   "display": "DeepSeek-V4-Flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "DeepSeek-V4-Flash__max",
+   "display": "DeepSeek-V4-Flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k3.1-pro__dev",
+   "display": "kimi-k3.1-pro (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k3.1-pro__max",
+   "display": "kimi-k3.1-pro (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k3__dev",
+   "display": "kimi-k3 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k3__max",
+   "display": "kimi-k3 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k2.8-preview__dev",
+   "display": "kimi-k2.8-preview (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k2.8-preview__max",
+   "display": "kimi-k2.8-preview (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "mimo-v2.6-flash__dev",
+   "display": "mimo-v2.6-flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "mimo-v2.6-flash__max",
+   "display": "mimo-v2.6-flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "mimo-v2.6-pro__dev",
+   "display": "mimo-v2.6-pro (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "mimo-v2.6-pro__max",
+   "display": "mimo-v2.6-pro (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m3.1-flash__dev",
+   "display": "minimax-m3.1-flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m3.1-flash__max",
+   "display": "minimax-m3.1-flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m3__dev",
+   "display": "minimax-m3 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "minimax-m3__max",
+   "display": "minimax-m3 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k2.7-code__dev",
+   "display": "kimi-k2.7-code (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "step-5-preview__dev",
+   "display": "step-5-preview (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "step-5-preview__max",
+   "display": "step-5-preview (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.6__dev",
+   "display": "glm-4.6 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "glm-4.6__max",
+   "display": "glm-4.6 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k2-0905__dev",
+   "display": "kimi-k2-0905 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "kimi-k2-0905__max",
+   "display": "kimi-k2-0905 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen3.8-flash__dev",
+   "display": "qwen3.8-flash (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen3.8-flash__max",
+   "display": "qwen3.8-flash (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen3.8-max__dev",
+   "display": "qwen3.8-max (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen3.8-max__max",
+   "display": "qwen3.8-max (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen-3.7-plus__dev",
+   "display": "qwen-3.7-plus (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen-3.7-plus__max",
+   "display": "qwen-3.7-plus (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "qwen-3.5__dev",
+   "display": "qwen-3.5 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_placeholder__dev",
+   "display": "custom_model_placeholder (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_placeholder__max",
+   "display": "custom_model_placeholder (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_200k_text__dev",
+   "display": "custom_model_200k_text (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_200k_text__max",
+   "display": "custom_model_200k_text (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_200k__dev",
+   "display": "custom_model_200k (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_200k__max",
+   "display": "custom_model_200k (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_1M_text__dev",
+   "display": "custom_model_1M_text (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_1M__dev",
+   "display": "custom_model_1M (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_doubao_1M__dev",
+   "display": "custom_model_doubao_1M (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_doubao_256k__dev",
+   "display": "custom_model_doubao_256k (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gemini__dev",
+   "display": "custom_model_gemini (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gemini__max",
+   "display": "custom_model_gemini (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gpt-6__dev",
+   "display": "custom_model_gpt-6 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gpt-6__max",
+   "display": "custom_model_gpt-6 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gpt-5__dev",
+   "display": "custom_model_gpt-5 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_gpt-5__max",
+   "display": "custom_model_gpt-5 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_no-fc__max",
+   "display": "custom_model_no-fc (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_no-fc__dev",
+   "display": "custom_model_no-fc (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_chat__dev",
+   "display": "custom_model_deepseek_chat (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_chat__max",
+   "display": "custom_model_deepseek_chat (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_reasoner__dev",
+   "display": "custom_model_deepseek_reasoner (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_reasoner__max",
+   "display": "custom_model_deepseek_reasoner (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_v4__dev",
+   "display": "custom_model_deepseek_v4 (dev)",
+   "type": "reasoning"
+  },
+  {
+   "id": "custom_model_deepseek_v4__max",
+   "display": "custom_model_deepseek_v4 (max)",
+   "type": "reasoning"
+  },
+  {
+   "id": "no_thinking_model",
+   "display": "no_thinking_model",
+   "type": "reasoning"
+  },
+  {
+   "id": "Doubao_1_6",
+   "display": "Doubao_1_6",
+   "type": "reasoning"
+  }
+ ]
+}

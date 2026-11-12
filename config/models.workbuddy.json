@@ -1,0 +1,1962 @@
+{
+  "models": [
+    {
+      "id": "auto",
+      "display": "Auto",
+      "context": 256000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "alias": true,
+      "vendor": "f",
+      "credits": "",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "auto",
+        "reasoning": "auto"
+      }
+    },
+    {
+      "id": "fast-model",
+      "display": "快速",
+      "context": 300000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.15",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "fast-model",
+        "reasoning": "fast-model"
+      }
+    },
+    {
+      "id": "balanced-model",
+      "display": "均衡",
+      "context": 300000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.50",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "balanced-model",
+        "reasoning": "balanced-model"
+      }
+    },
+    {
+      "id": "deep-model",
+      "display": "极致",
+      "context": 300000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x1.00",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "deep-model",
+        "reasoning": "deep-model"
+      }
+    },
+    {
+      "id": "hy3",
+      "display": "Hy3",
+      "context": 192000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.00",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy3",
+        "reasoning": "hy3"
+      }
+    },
+    {
+      "id": "hy3-b",
+      "display": "Hy3",
+      "context": 192000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.00",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy3-b",
+        "reasoning": "hy3-b"
+      }
+    },
+    {
+      "id": "hy3-c",
+      "display": "Hy3",
+      "context": 192000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.00",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy3-c",
+        "reasoning": "hy3-c"
+      }
+    },
+    {
+      "id": "hy3-x",
+      "display": "Hy3",
+      "context": 192000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.05",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy3-x",
+        "reasoning": "hy3-x"
+      }
+    },
+    {
+      "id": "hy4-preview-ctrl",
+      "display": "Hy4 preview",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4-preview-ctrl",
+        "reasoning": "hy4-preview-ctrl"
+      }
+    },
+    {
+      "id": "hy4-preview-exp",
+      "display": "Hy4 preview",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4-preview-exp",
+        "reasoning": "hy4-preview-exp"
+      }
+    },
+    {
+      "id": "hy4preview-exp1",
+      "display": "Hy4 preview",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4preview-exp1",
+        "reasoning": "hy4preview-exp1"
+      }
+    },
+    {
+      "id": "hy4preview-exp2",
+      "display": "Hy4 preview",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4preview-exp2",
+        "reasoning": "hy4preview-exp2"
+      }
+    },
+    {
+      "id": "hy4-preview-x",
+      "display": "Hy4 preview",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29"
+    },
+    {
+      "id": "minimax-m2.5",
+      "display": "MiniMax-M2.5",
+      "context": 200000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.18"
+    },
+    {
+      "id": "glm-5.3",
+      "display": "GLM-5.3",
+      "context": 1000000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": "x0.69",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "glm-5.3",
+        "reasoning": "glm-5.3"
+      }
+    },
+    {
+      "id": "glm-5.3-flash",
+      "display": "GLM-5.3-Flash",
+      "context": 1000000,
+      "maxOutputTokens": 131072,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.08",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "glm-5.3-flash",
+        "reasoning": "glm-5.3-flash"
+      }
+    },
+    {
+      "id": "glm-5.2",
+      "display": "GLM-5.2",
+      "context": 1000000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": "x0.79",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "glm-5.2",
+        "reasoning": "glm-5.2"
+      }
+    },
+    {
+      "id": "glm-5.0-turbo",
+      "display": "GLM-5.0-Turbo",
+      "context": 200000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": "x0.95",
+      "relatedModels": {
+        "lite": "glm-5.0-turbo",
+        "reasoning": "glm-5.0-turbo"
+      }
+    },
+    {
+      "id": "glm-4.6v",
+      "display": "GLM-4.6V",
+      "context": 128000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.11"
+    },
+    {
+      "id": "kimi-k3-1",
+      "display": "Kimi-K3",
+      "context": 1000000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x1.62",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "kimi-k3-1",
+        "reasoning": "kimi-k3-1"
+      }
+    },
+    {
+      "id": "kimi-k2.8-preview",
+      "display": "Kimi-K2.8-Preview",
+      "context": 1000000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": true,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.77",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "kimi-k2.8-preview",
+        "reasoning": "kimi-k2.8-preview"
+      }
+    },
+    {
+      "id": "kimi-k2.5",
+      "display": "Kimi-K2.5",
+      "context": 256000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.45"
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "display": "Kimi-K2-Thinking",
+      "context": 256000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.54"
+    },
+    {
+      "id": "minimax-m2.7",
+      "display": "MiniMax-M2.7",
+      "context": 200000,
+      "maxOutputTokens": 48000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.26",
+      "relatedModels": {
+        "lite": "minimax-m2.7",
+        "reasoning": "minimax-m2.7"
+      }
+    },
+    {
+      "id": "glm-4.6",
+      "display": "GLM-4.6",
+      "context": 168000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.23"
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "display": "Deepseek-V4-Flash",
+      "context": 1000000,
+      "maxOutputTokens": 50000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": false,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.17",
+      "relatedModels": {
+        "lite": "deepseek-v4-flash",
+        "reasoning": "deepseek-v4-flash"
+      }
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "display": "DeepSeek-V4.1-Flash",
+      "context": 1000000,
+      "maxOutputTokens": 128000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.11",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "deepseek-v4.1-flash",
+        "reasoning": "deepseek-v4.1-flash"
+      }
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "display": "DeepSeek-V4-Pro",
+      "context": 1000000,
+      "maxOutputTokens": 128000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": false,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.51",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "deepseek-v4-pro",
+        "reasoning": "deepseek-v4-pro"
+      }
+    },
+    {
+      "id": "deepseek-v3-2-volc",
+      "display": "DeepSeek-V3.2",
+      "context": 96000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [
+        "craft"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.29",
+      "relatedModels": {
+        "lite": "deepseek-v3-2-volc",
+        "reasoning": "deepseek-v3-2-volc"
+      }
+    },
+    {
+      "id": "deepseek-v3-1-volc",
+      "display": "DeepSeek-V3-1-Terminus",
+      "context": 96000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.52",
+      "relatedModels": {
+        "lite": "deepseek-v3-1-volc",
+        "reasoning": "deepseek-v3-1-volc"
+      }
+    },
+    {
+      "id": "deepseek-v3-1-lkeap",
+      "display": "DeepSeek-V3-1",
+      "context": 96000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.52"
+    },
+    {
+      "id": "deepseek-v3-1",
+      "display": "DeepSeek-V3.1",
+      "context": 96000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.52"
+    },
+    {
+      "id": "deepseek-v3-0324-lkeap",
+      "display": "DeepSeek-V3-0324",
+      "context": 112000,
+      "maxOutputTokens": 16000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.52"
+    },
+    {
+      "id": "deepseek-r1-0528-lkeap",
+      "display": "DeepSeek-R1-0528",
+      "context": 96000,
+      "maxOutputTokens": 16000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": ""
+    },
+    {
+      "id": "kimi-k2-instruct-taiji",
+      "display": "Kimi-K2",
+      "context": 31000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": ""
+    },
+    {
+      "id": "completion-gf",
+      "display": "completion-gf",
+      "context": 200000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": ""
+    },
+    {
+      "id": "default-1.1",
+      "display": "Claude-3.7-Sonnet",
+      "context": 200000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": ""
+    },
+    {
+      "id": "deepseek-r1-0528",
+      "display": "deepseek-r1",
+      "context": 96000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": ""
+    },
+    {
+      "id": "deepseek-v3-0324",
+      "display": "deepseek-v3",
+      "context": 96000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": ""
+    },
+    {
+      "id": "default-1.2",
+      "display": "Claude-4.0-Sonnet",
+      "context": 200000,
+      "maxOutputTokens": 24000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": ""
+    },
+    {
+      "id": "hunyuan-2.0-instruct",
+      "display": "Hunyuan-2.0-Instruct",
+      "context": 128000,
+      "maxOutputTokens": 16000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": ""
+    },
+    {
+      "id": "hunyuan-chat",
+      "display": "Hunyuan-Turbos",
+      "context": 128000,
+      "maxOutputTokens": 8192,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": ""
+    },
+    {
+      "id": "space-bunny",
+      "display": "Space-Bunny",
+      "context": 1000000,
+      "maxOutputTokens": 128000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.08",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "space-bunny",
+        "reasoning": "space-bunny"
+      }
+    },
+    {
+      "id": "step-5-preview",
+      "display": "Step-5-Preview",
+      "context": 1000000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.33",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "step-5-preview",
+        "reasoning": "step-5-preview"
+      }
+    },
+    {
+      "id": "mimo-v2.6-pro",
+      "display": "Xiaomi MiMo-V2.6-Pro",
+      "context": 1000000,
+      "maxOutputTokens": 128000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": "x0.13",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "mimo-v2.6-pro",
+        "reasoning": "mimo-v2.6-pro"
+      }
+    },
+    {
+      "id": "minimax-m3.1-flash",
+      "display": "MiniMax-M3.1-Flash",
+      "context": 1000000,
+      "maxOutputTokens": 128000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.08",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "minimax-m3.1-flash",
+        "reasoning": "minimax-m3.1-flash"
+      }
+    },
+    {
+      "id": "kimi-k3.1-pro",
+      "display": "Kimi-K3.1-Pro",
+      "context": 1000000,
+      "maxOutputTokens": 32000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": null,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "f",
+      "credits": "x0.97",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "kimi-k3.1-pro",
+        "reasoning": "kimi-k3.1-pro"
+      }
+    },
+    {
+      "id": "hy4free",
+      "display": "Hy4",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.00",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4free",
+        "reasoning": "hy4free"
+      }
+    },
+    {
+      "id": "hy4std",
+      "display": "Hy4",
+      "context": 960000,
+      "maxOutputTokens": 64000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": true,
+        "supportsImages": true,
+        "disabledMultimodal": false,
+        "reasoning": true,
+        "reasoningOnly": true,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [
+        "cli"
+      ],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "j",
+      "credits": "x0.29",
+      "relatedModels": {
+        "builtin-lite": "wb-lite",
+        "lite": "hy4std",
+        "reasoning": "hy4std"
+      }
+    },
+    {
+      "id": "default",
+      "display": "Default",
+      "context": 200000,
+      "maxOutputTokens": 24000,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": true,
+        "vision": false,
+        "supportsImages": false,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "alias": true,
+      "compatibilityAlias": true,
+      "catalogOrigin": "gateway-compatible-alias",
+      "vendor": "v",
+      "credits": "x2.00 credits",
+      "relatedModels": {
+        "lite": "default",
+        "reasoning": "default"
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "id": "hunyuan-3b",
+      "display": "hunyuan-3b",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "hunyuan-7b-dense",
+      "display": "hunyuan-7b",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "codewise-completions",
+      "display": "codewise-completions",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "e",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "codewise-rewrite",
+      "display": "codewise-rewrite",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "codewise-nes-a4-027-aide",
+      "display": "codewise-nes-a4-027-aide",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "codewise-jump",
+      "display": "codewise-jump",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "completion",
+      "capabilities": {
+        "chat": false,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": true
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "completion-only",
+      "reasonText": "仅被官方补全配置引用，未被聊天 agent 引用"
+    },
+    {
+      "id": "deepseek-v3-0324-taco-completion",
+      "display": "deepseek-v3-0324",
+      "context": null,
+      "maxOutputTokens": 256,
+      "type": "auxiliary",
+      "capabilities": {
+        "chat": null,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "vendor": "tencent",
+      "credits": "",
+      "reason": "missing-chat-context",
+      "reasonText": "未提供聊天上下文预算，可能为补全或辅助用途；未认定服务端不可聊天"
+    },
+    {
+      "id": "hunyuan-image-alpha",
+      "display": "Hunyuan Image Alpha",
+      "context": null,
+      "maxOutputTokens": null,
+      "type": "image",
+      "capabilities": {
+        "chat": false,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [
+        "text-to-image"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "reason": "image-generation",
+      "reasonText": "官方元数据声明为图像生成/编辑"
+    },
+    {
+      "id": "hunyuan-image-alpha-edit",
+      "display": "Hunyuan Image Alpha Edit",
+      "context": null,
+      "maxOutputTokens": null,
+      "type": "image",
+      "capabilities": {
+        "chat": false,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [
+        "image-to-image"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "reason": "image-generation",
+      "reasonText": "官方元数据声明为图像生成/编辑"
+    },
+    {
+      "id": "wb-lite",
+      "display": "wb-lite",
+      "context": null,
+      "maxOutputTokens": null,
+      "type": "chat",
+      "capabilities": {
+        "chat": true,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [],
+      "aliases": [],
+      "availability": {
+        "disabled": true,
+        "hidden": null
+      },
+      "reason": "disabled",
+      "reasonText": "配置明确禁用此模型"
+    },
+    {
+      "id": "kling-video-v3",
+      "display": "Kling-Video-V3",
+      "context": null,
+      "maxOutputTokens": null,
+      "type": "video",
+      "capabilities": {
+        "chat": false,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [
+        "text-to-video",
+        "image-to-video"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "credits": "",
+      "reason": "video-generation",
+      "reasonText": "官方元数据声明为视频生成"
+    },
+    {
+      "id": "minimax-video-h3",
+      "display": "MiniMax-H3",
+      "context": null,
+      "maxOutputTokens": null,
+      "type": "video",
+      "capabilities": {
+        "chat": false,
+        "tools": null,
+        "vision": null,
+        "supportsImages": null,
+        "disabledMultimodal": null,
+        "reasoning": null,
+        "reasoningOnly": null,
+        "canDisableThinking": null,
+        "completion": false
+      },
+      "agents": [],
+      "tags": [
+        "text-to-video",
+        "image-to-video"
+      ],
+      "aliases": [],
+      "availability": {
+        "disabled": null,
+        "hidden": null
+      },
+      "reason": "video-generation",
+      "reasonText": "官方元数据声明为视频生成"
+    }
+  ],
+  "source": "WorkBuddy official product configuration: full model catalogue; metadata only, not per-model generation validation",
+  "summary": {
+    "catalogCount": 62,
+    "uniqueCount": 62,
+    "chatCount": 50,
+    "excludedCount": 12,
+    "duplicateCount": 0,
+    "duplicateIds": [],
+    "countsByReason": {
+      "missing-chat-context": 6,
+      "completion-only": 1,
+      "image-generation": 2,
+      "disabled": 1,
+      "video-generation": 2
+    },
+    "agentCount": 1,
+    "unresolvedAgentModels": [],
+    "validation": "configuration-only; model generation and account entitlements not individually tested"
+  },
+  "refreshedAt": "2026-11-04T10:16:05.508Z",
+  "catalog": {
+    "origin": "remote",
+    "endpoint": "https://www.workbuddy.cn/v3/config",
+    "fetchedAt": "2026-11-04T10:16:05.506Z",
+    "remoteModelCount": 61,
+    "compatibilityAliases": [
+      "default"
+    ],
+    "productBuildDate": "2026-10-15T01:58:18.676Z",
+    "productVersion": "5.8.3"
+  }
+}

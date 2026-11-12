@@ -1,0 +1,8 @@
+{
+  "base": "https://api5-normal.mchost.guru",
+  "chatPath": "/api/ide/v1/chat",
+  "modelListPath": "/api/ide/v1/model_list?type=chat",
+  "intent": "general_qa_intent",
+  "deviceId": "",
+  "headers": {}
+}

@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "id": "0",
+      "display": "豆包 · 快速",
+      "modelItemKey": "0",
+      "modeId": "1",
+      "agentMode": 2,
+      "conversationMode": "chat",
+      "reasoningEffort": 3
+    },
+    {
+      "id": "3",
+      "display": "豆包 · 专家",
+      "modelItemKey": "3",
+      "modeId": "1",
+      "agentMode": 2,
+      "conversationMode": "chat",
+      "reasoningEffort": 4,
+      "context": 256000,
+      "modelExtraParams": { "total_window_size": "256000" }
+    }
+  ]
+}

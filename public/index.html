@@ -1,0 +1,1569 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Gateway</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234B5BD6'/><path d='M10 22V10h4l4 7 4-7h4v12h-3v-7l-3.5 6h-3L13 15v7z' fill='white'/></svg>">
+<style>
+:root{
+  --bg:#F7F7F5; --panel:#FFFFFF; --panel-2:#F1F1EE; --text:#1A1A1D; --muted:#71717A;
+  --border:rgba(0,0,0,.09); --border-strong:rgba(0,0,0,.16);
+  --accent:#4B5BD6; --accent-hover:#3E4CBF; --accent-soft:rgba(75,91,214,.10);
+  --danger:#C0403F; --ok:#2E7D57; --code-bg:#F4F4F1;
+  --radius:12px; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:#141416; --panel:#1B1B1F; --panel-2:#232328; --text:#EDEDEF; --muted:#97979F;
+  --border:rgba(255,255,255,.10); --border-strong:rgba(255,255,255,.18);
+  --accent:#8B95F0; --accent-hover:#A2AAF5; --accent-soft:rgba(139,149,240,.14);
+  --danger:#E07372; --ok:#5FB98C; --code-bg:#212126;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); background:var(--bg); color:var(--text);
+  font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+::selection{background:var(--accent-soft)}
+
+#app{display:grid;grid-template-columns:264px minmax(0,1fr) 300px;height:100vh;height:100dvh}
+
+/* ---------- sidebar ---------- */
+#side{
+  background:var(--panel-2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; min-height:0;
+}
+.brand{display:flex;align-items:center;gap:9px;padding:16px 16px 12px}
+.brand .mark{
+  width:26px;height:26px;border-radius:7px;background:var(--accent);
+  display:grid;place-items:center;flex:none;color:#fff;
+}
+.brand h1{font-size:13.5px;font-weight:600;letter-spacing:.2px}
+.brand small{display:block;font-size:11px;color:var(--muted);font-weight:400;line-height:1.2}
+
+.newbtn{
+  margin:4px 12px 10px; display:flex;align-items:center;gap:8px;
+  padding:9px 12px; border-radius:9px; border:1px solid var(--border-strong);
+  background:var(--panel); font-size:13px; font-weight:500; width:calc(100% - 24px);
+  transition:background .12s,border-color .12s;
+}
+.newbtn:hover{background:var(--accent-soft);border-color:var(--accent)}
+
+.convs{flex:1;overflow-y:auto;padding:2px 8px 8px;min-height:0}
+.convs::-webkit-scrollbar,.msgs::-webkit-scrollbar{width:8px}
+.convs::-webkit-scrollbar-thumb,.msgs::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px}
+.conv{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:1px;
+}
+.conv:hover{background:var(--border);color:var(--text)}
+.conv.active{background:var(--panel);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.conv .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv .x{opacity:0;flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:4px}
+.conv:hover .x{opacity:.55}
+.conv .x:hover{opacity:1;background:var(--border)}
+.emptyhint{color:var(--muted);font-size:12px;padding:14px 12px;text-align:center}
+
+.sidefoot{border-top:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.dot.on{background:var(--ok)}
+.dot.off{background:var(--danger)}
+.sidefoot .label{font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iconbtn{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--muted);flex:none}
+.iconbtn:hover{background:var(--border);color:var(--text)}
+.iconbtn:disabled{opacity:.4;cursor:wait}
+
+/* ---------- main ---------- */
+main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+header{
+  display:flex;align-items:center;gap:10px;padding:10px 18px;
+  border-bottom:1px solid var(--border);background:var(--panel);flex:none;
+}
+select.model{
+  appearance:none;border:1px solid var(--border-strong);border-radius:8px;
+  padding:6px 26px 6px 10px;font-size:13px;background:var(--panel);
+  cursor:pointer;max-width:280px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+}
+select.model:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+header .spacer{flex:1}
+.pill{
+  font-size:11.5px;color:var(--muted);border:1px solid var(--border);
+  padding:3px 8px;border-radius:20px;white-space:nowrap;
+}
+
+.msgs{flex:1;overflow-y:auto;padding:24px 0 8px;min-height:0;scroll-behavior:smooth;display:flex;flex-direction:column}
+.wrap{max-width:760px;width:100%;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;flex:1}
+.banner{flex:0 0 auto;padding:10px 16px;background:#fdecec;border-bottom:1px solid #f3c2c2;color:#8a1f1f}
+.banner-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.banner-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.5}
+.banner-txt span{opacity:.85;word-break:break-word}
+.banner-txt code{font-family:ui-monospace,Menlo,Consolas,monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px}
+.banner-btn{flex:0 0 auto;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:12.5px;padding:5px 12px;border-radius:7px;cursor:pointer}
+.banner-btn:hover{background:rgba(0,0,0,.06)}
+html[data-theme="dark"] .banner{background:#3a2020;border-bottom-color:#5b2f2f;color:#ffb4b4}
+html[data-theme="dark"] .banner-txt code{background:rgba(255,255,255,.12)}
+html[data-theme="dark"] .banner-btn:hover{background:rgba(255,255,255,.1)}
+.msg{display:flex;gap:12px;margin-bottom:22px}
+.msg .av{
+  width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
+  font-size:11px;font-weight:600;margin-top:2px;
+}
+.msg.user .av{background:var(--panel-2);color:var(--muted);border:1px solid var(--border)}
+.msg.bot .av{background:var(--accent);color:#fff}
+.body{min-width:0;flex:1}
+.who{font-size:11.5px;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.content{font-size:14.5px;line-height:1.72;word-break:break-word}
+.content>*+*{margin-top:10px}
+.content p{margin:0}
+.content h1,.content h2,.content h3,.content h4{font-weight:600;line-height:1.4;margin-top:16px}
+.content h1{font-size:18px}.content h2{font-size:16px}.content h3{font-size:15px}.content h4{font-size:14px}
+.content ul,.content ol{padding-left:22px}
+.content li{margin:3px 0}
+.content a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.content a:hover{border-bottom-color:var(--accent)}
+.content blockquote{border-left:2px solid var(--border-strong);padding-left:12px;color:var(--muted)}
+.content code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:1.5px 5px;border-radius:4px}
+.content pre{background:var(--code-bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px;overflow-x:auto}
+.content pre code{background:none;padding:0;font-size:12.5px;line-height:1.65}
+.content hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.content table{border-collapse:collapse;width:100%;font-size:13px}
+.content th,.content td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.content th{background:var(--panel-2);font-weight:600}
+
+.reasoning{
+  border:1px solid var(--border);border-radius:9px;margin-bottom:10px;
+  background:var(--panel-2);overflow:hidden;
+}
+.reasoning summary{
+  padding:7px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:6px;user-select:none;
+}
+.reasoning summary::-webkit-details-marker{display:none}
+.reasoning summary::before{content:"";width:0;height:0;border-left:4.5px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
+.reasoning[open] summary::before{transform:rotate(90deg)}
+.reasoning .inner{padding:0 12px 10px;font-size:13px;color:var(--muted);white-space:pre-wrap;line-height:1.65;max-height:280px;overflow:auto}
+
+.toolcall{
+  border:1px solid var(--border);border-radius:9px;margin:8px 0 0;
+  background:var(--panel-2);overflow:hidden;
+}
+.toolcall summary{
+  padding:7px 12px;font-size:12.5px;cursor:pointer;list-style:none;
+  display:flex;align-items:center;gap:6px;user-select:none;color:var(--accent, #2563eb);font-weight:500;
+}
+.toolcall summary::-webkit-details-marker{display:none}
+.toolcall summary::before{content:"";width:0;height:0;border-left:4.5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
+.toolcall[open] summary::before{transform:rotate(90deg)}
+.toolcall pre{margin:0;padding:0 12px 10px;font-size:12.5px;color:var(--muted);white-space:pre-wrap;word-break:break-all;line-height:1.6;max-height:240px;overflow:auto}
+.toolcall.incomplete summary{color:var(--danger)}
+
+.msgfoot{display:flex;gap:2px;margin-top:8px;opacity:0;transition:opacity .12s}
+.msg:hover .msgfoot{opacity:1}
+.mini{
+  font-size:11.5px;color:var(--muted);padding:3px 7px;border-radius:5px;
+  display:flex;align-items:center;gap:4px;
+}
+.mini:hover{background:var(--border);color:var(--text)}
+
+.caret{display:inline-block;width:7px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(2) infinite;border-radius:1px}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+.thinkrow{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px}
+.spin{width:12px;height:12px;border:1.5px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.err{border:1px solid rgba(192,64,63,.35);background:rgba(192,64,63,.06);color:var(--danger);border-radius:9px;padding:10px 12px;font-size:13px}
+.stream-note{border:1px solid var(--border-strong);background:var(--panel-2);color:var(--muted);border-radius:9px;padding:10px 12px;font-size:13px;margin-top:10px}
+
+/* ---------- empty ---------- */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;gap:6px}
+.empty .big{width:44px;height:44px;border-radius:12px;background:var(--accent);display:grid;place-items:center;margin-bottom:10px}
+.empty h2{font-size:19px;font-weight:600}
+.empty p{color:var(--muted);font-size:13.5px;max-width:420px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px;max-width:520px}
+.chip{
+  border:1px solid var(--border-strong);border-radius:20px;padding:7px 14px;
+  font-size:12.5px;color:var(--muted);transition:.12s;
+}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+/* ---------- composer ---------- */
+.composer{flex:none;padding:8px 0 18px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.box{
+  max-width:760px;margin:0 auto;padding:0 24px;
+}
+.field{
+  border:1px solid var(--border-strong);border-radius:14px;background:var(--panel);
+  padding:10px 10px 10px 14px;display:flex;align-items:flex-end;gap:8px;
+  transition:border-color .12s, box-shadow .12s;
+}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#input{
+  flex:1;border:none;background:none;resize:none;outline:none;
+  font-size:14.5px;line-height:1.6;max-height:200px;min-height:24px;padding:2px 0;
+}
+#input::placeholder{color:var(--muted)}
+.send{
+  width:32px;height:32px;border-radius:9px;background:var(--accent);color:#fff;
+  display:grid;place-items:center;flex:none;transition:.12s;
+}
+.send:hover:not(:disabled){background:var(--accent-hover)}
+.send:disabled{opacity:.35;cursor:not-allowed}
+.send.stop{background:var(--danger)}
+.footnote{text-align:center;font-size:11.5px;color:var(--muted);margin-top:7px}
+
+/* ---------- dialog ---------- */
+dialog{
+  border:1px solid var(--border);border-radius:14px;padding:0;background:var(--panel);
+  color:var(--text);width:min(520px,calc(100vw - 32px));box-shadow:0 18px 50px rgba(0,0,0,.22);
+}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.dlg-head{display:flex;align-items:center;padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.dlg-head h3{font-size:14.5px;font-weight:600;flex:1}
+.dlg-body{padding:16px 18px;display:flex;flex-direction:column;gap:16px;max-height:min(70vh,560px);overflow:auto}
+.fieldset{display:flex;flex-direction:column;gap:6px}
+.fieldset label{font-size:12.5px;font-weight:500}
+.fieldset .hint{font-size:11.5px;color:var(--muted);line-height:1.55}
+.fieldset input[type=text],.fieldset input[type=password],.fieldset textarea{
+  border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;
+  background:var(--bg);outline:none;width:100%;font-size:13px;
+}
+.fieldset input:focus,.fieldset textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fieldset textarea{resize:vertical;min-height:64px;font-family:inherit}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;border-top:1px solid var(--border)}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--border-strong)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.ghost:hover{background:var(--border)}
+.savemsg{font-size:12px;color:var(--ok)}
+
+/* 右侧常驻账户额度，独立于聊天区域滚动 */
+#quotaPanel{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border-left:1px solid var(--border)}
+.quota-head{display:flex;align-items:center;gap:6px;padding:16px 16px 8px;flex:none}
+.quota-head h2{flex:1;font-size:13.5px;font-weight:600}
+.quota-sub{padding:0 16px 13px;color:var(--muted);font-size:11.5px;line-height:1.6;border-bottom:1px solid var(--border)}
+.auto-state{display:flex;align-items:center;gap:6px;color:var(--ok);margin-bottom:2px}
+.auto-state .dot{width:6px;height:6px;background:currentColor}
+.auto-state.pending{color:var(--muted)}
+#quotaBody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px;display:flex;flex-direction:column;gap:10px}
+#quotaBody::-webkit-scrollbar{width:6px}
+#quotaBody::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px}
+.quota-foot{flex:none;padding:10px 16px;border-top:1px solid var(--border);font-size:10.5px;color:var(--muted)}
+.qcard{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--panel);flex:none}
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;font-size:12.5px}
+.qhead strong{min-width:0;overflow-wrap:anywhere;font-weight:600}
+.qplan{color:var(--muted);font-size:10.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbalance{font-size:26px;line-height:1.25;font-weight:600;letter-spacing:-.7px;font-variant-numeric:tabular-nums}
+.qbalance small{font-size:11px;font-weight:400;letter-spacing:0;color:var(--muted);margin-left:7px}
+.qmeta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.qrows{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.qrow{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted)}
+.qrow b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.qperiod-source{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;line-height:1.5;color:var(--muted)}
+.qperiod-source a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.qbar{height:4px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:8px}
+.qbar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.qcheck{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--muted);margin-top:11px;line-height:1.5}
+.qcheck::before{content:'';width:5px;height:5px;margin-top:6px;flex:none;background:currentColor;border-radius:50%}
+.qcheck.ok{color:var(--ok)}
+.qcheck.wait{color:var(--accent)}
+.qcheck.error{color:var(--danger)}
+.qnote{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.qshared{font-size:10px;color:var(--accent);background:var(--accent-soft);padding:2px 6px;border-radius:5px;white-space:nowrap}
+.qnotice{font-size:11.5px;color:var(--muted);line-height:1.6;padding:8px 2px}
+#quotaBtn,#closeQuotaPanel,.quota-shade{display:none}
+@media (max-width:1180px) and (min-width:1061px){
+  #app{grid-template-columns:224px minmax(0,1fr) 286px}
+  header{padding:10px 12px;gap:6px}
+  header select.model{min-width:0;max-width:210px}
+  #ctxPill{display:none}
+}
+@media (max-width:1060px){
+  #app{grid-template-columns:264px minmax(0,1fr)}
+  #quotaPanel{position:fixed;inset:0 0 0 auto;width:min(320px,calc(100vw - 28px));z-index:32;transform:translateX(100%);transition:transform .2s}
+  #quotaPanel.open{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.13)}
+  #quotaBtn,#closeQuotaPanel{display:grid}
+  body.quota-open .quota-shade{display:block;position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:31;cursor:default}
+}
+
+@media (max-width:760px){
+  header{padding:10px;gap:6px}
+  header select.model{min-width:0;flex:1}
+  header .spacer,#ctxPill{display:none}
+  #app{grid-template-columns:1fr}
+  #side{position:fixed;inset:0 auto 0 0;width:264px;z-index:20;transform:translateX(-100%);transition:transform .2s}
+  #side.open{transform:none}
+  #menuBtn{display:grid!important}
+}
+#menuBtn{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand">
+      <div class="mark">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+      </div>
+      <div><h1>AI Gateway<small id="brandSub">本地模型入口</small></h1></div>
+    </div>
+    <button class="newbtn" id="newChat">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      新建对话
+    </button>
+    <div class="convs" id="convs"></div>
+    <div class="sidefoot">
+      <span class="dot" id="dot"></span>
+      <span class="label" id="statusLabel">检查中…</span>
+      <button class="iconbtn" id="settingsBtn" title="设置">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 110-4h.09A1.65 1.65 0 003.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H8.6a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.09a1.65 1.65 0 001.51 1H22a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <button class="iconbtn" id="menuBtn" title="对话列表">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <select class="model" id="providerSel" aria-label="筛选产品通道" style="max-width:145px"></select>
+      <select class="model" id="modelSel" aria-label="选择模型"></select>
+      <span class="spacer"></span>
+      <button class="iconbtn" id="quotaBtn" title="账户额度与自动签到" aria-label="查看账户额度与自动签到" aria-controls="quotaPanel" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.6 9.6h3.9a1.5 1.5 0 010 3h-3a1.5 1.5 0 000 3h4"/></svg>
+      </button>
+      <span class="pill" id="ctxPill"></span>
+    </header>
+    <div class="banner" id="banner" hidden>
+      <div class="banner-in">
+        <div class="banner-txt">
+          <strong>没连上本地网关</strong>
+          <span id="bannerDetail"></span>
+        </div>
+        <button class="banner-btn" id="bannerRetry">重试</button>
+      </div>
+    </div>
+    <div class="msgs" id="msgs">
+      <div class="wrap" id="msgWrap"></div>
+    </div>
+    <div class="composer">
+      <div class="box">
+        <div class="field">
+          <textarea id="input" rows="1" placeholder="发消息… (Enter 发送 / Shift+Enter 换行)"></textarea>
+          <button class="send" id="sendBtn" title="发送">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="footnote" id="hint">本地转发 · 仅供个人调试</div>
+      </div>
+    </div>
+  </main>
+  <aside id="quotaPanel" aria-labelledby="quotaTitle">
+    <div class="quota-head">
+      <h2 id="quotaTitle">账户额度</h2>
+      <button class="iconbtn" id="refreshQuota" title="刷新账户额度" aria-label="刷新账户额度">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0111.6-1L20 9M4 15l2.3 3A7 7 0 0017.9 17"/></svg>
+      </button>
+      <button class="iconbtn" id="closeQuotaPanel" title="收起账户额度" aria-label="收起账户额度">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="quota-sub">
+      <div class="auto-state pending" id="automationState" role="status"><span class="dot"></span><span>自动签到状态同步中</span></div>
+      各账号分别显示 · 每 30 秒更新
+    </div>
+    <div id="quotaBody" aria-busy="true"><div class="qnotice">正在读取各通道额度…</div></div>
+    <div class="quota-foot" id="quotaUpdated">等待更新</div>
+  </aside>
+</div>
+<button class="quota-shade" id="quotaShade" aria-label="收起账户额度" tabindex="-1"></button>
+
+<dialog id="dlg">
+  <div class="dlg-head">
+    <h3>设置</h3>
+    <button class="iconbtn" id="closeDlg">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <div class="fieldset">
+      <label for="keyIn">网关密钥</label>
+      <input type="password" id="keyIn" placeholder="留空即可（免密）">
+      <div class="hint">默认免密，什么都不用填。只有服务端启动时设了 GATEWAY_KEY 才需要填同一串。</div>
+    </div>
+    <div class="fieldset" id="lanField" hidden>
+      <label>局域网访问</label>
+      <div id="lanBox"></div>
+    </div>
+    <div class="fieldset">
+      <label for="tokenIn">上游 Token</label>
+      <input type="password" id="tokenIn" placeholder="Bearer 后面的那一串">
+      <div class="hint">只发给本机服务，不落盘。过期后重新填一次即可，不用重启。</div>
+    </div>
+    <div class="fieldset">
+      <label for="sysIn">系统提示词</label>
+      <textarea id="sysIn" rows="3" placeholder="可选，会作为首条 system 消息"></textarea>
+    </div>
+    <div class="fieldset">
+      <label for="tempIn">温度</label>
+      <div class="row">
+        <input type="range" id="tempIn" min="0" max="2" step="0.1" value="1" style="flex:1">
+        <span class="pill" id="tempVal" style="min-width:34px;text-align:center">1.0</span>
+      </div>
+    </div>
+    <div class="fieldset">
+      <label>外观</label>
+      <div class="row">
+        <span class="hint">跟随系统 / 强制亮色 / 强制暗色</span>
+        <select id="themeIn" style="border:1px solid var(--border-strong);border-radius:8px;padding:6px 8px;background:var(--bg)">
+          <option value="auto">跟随系统</option>
+          <option value="light">亮色</option>
+          <option value="dark">暗色</option>
+        </select>
+      </div>
+    </div>
+    <div class="savemsg" id="saveMsg"></div>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn ghost" id="cancelDlg">取消</button>
+    <button class="btn primary" id="saveDlg">保存</button>
+  </div>
+</dialog>
+
+<script>
+const LS = {
+  convs: 'tg.convs.v1',
+  settings: 'tg.settings.v1',
+};
+const $ = (s) => document.querySelector(s);
+
+// crypto.randomUUID / navigator.clipboard 只在「安全上下文」有：
+// https、localhost、127.0.0.1 才有；用 http://192.168.x.x 打开时它们都是 undefined。
+// 所以这里全部做降级，否则局域网访问时发消息会直接抛异常发不出去。
+function uid() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch (e) {
+    /* 落到下面 */
+  }
+  try {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40;
+      b[8] = (b[8] & 0x3f) | 0x80;
+      const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+    }
+  } catch (e) {
+    /* 落到下面 */
+  }
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
+function copyText(text) {
+  // 非安全上下文没有 navigator.clipboard，退回 textarea + execCommand
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('copy failed'));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+const state = {
+  models: [],
+  model: '',
+  convs: [],
+  cur: null,
+  streaming: false,
+  ctrl: null,
+  health: null,
+  settings: {
+    key: '',
+    token: '',
+    system: '',
+    temp: 1,
+    theme: 'auto',
+  },
+};
+
+const PROVIDERS = [
+  [/^Doubao/i, '豆包'],
+  [/^seed_/i, '豆包'],
+  [/^glm/i, '智谱'],
+  [/^deepseek/i, 'DeepSeek'],
+  [/^kimi/i, '月之暗面'],
+  [/^mimo/i, '小米'],
+  [/^minimax/i, 'MiniMax'],
+  [/^step/i, '阶跃'],
+  [/^qwen/i, '通义'],
+  [/^step/i, '阶跃'],
+  [/^search_agent/i, '检索'],
+  [/^custom_/i, '自定义'],
+];
+const baseModelId = (id) => String(id).replace(/__[A-Za-z0-9]+$/, '');
+const providerOf = (id) => (PROVIDERS.find(([re]) => re.test(baseModelId(id))) || [null, '其他'])[1];
+
+function load() {
+  // 历史数据来自更早的版本，字段可能缺失或类型不对。这里逐条清洗，
+  // 避免脏数据在渲染阶段抛异常，连带把后面的事件绑定全部中断。
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS.convs) || '[]');
+    state.convs = (Array.isArray(raw) ? raw : [])
+      .filter((c) => c && Array.isArray(c.messages))
+      .map((c, i) => ({
+        id: c.id || 'c' + i + '_' + Date.now(),
+        title: typeof c.title === 'string' && c.title ? c.title : '新对话',
+        model: typeof c.model === 'string' ? c.model : '',
+        messages: c.messages
+          .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
+          .map((m) => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : '',
+            reasoning: typeof m.reasoning === 'string' ? m.reasoning : '',
+            model: typeof m.model === 'string' ? m.model : '',
+            ...(typeof m.error === 'string' ? { error: m.error } : {}),
+            ...(typeof m.errorCode === 'string' ? { errorCode: m.errorCode } : {}),
+            ...(typeof m.finishReason === 'string' ? { finishReason: m.finishReason } : {}),
+            ...(['complete', 'incomplete', 'error', 'cancelled'].includes(m.endState) ? { endState: m.endState } : {}),
+            ...(Array.isArray(m.toolCalls) && m.toolCalls.length ? { toolCalls: m.toolCalls } : {}),
+          })),
+      }));
+  } catch {
+    state.convs = [];
+  }
+  try {
+    Object.assign(state.settings, JSON.parse(localStorage.getItem(LS.settings) || '{}'));
+  } catch { /* ignore */ }
+  if (!state.settings.theme) state.settings.theme = 'auto';
+  applyTheme();
+}
+function saveConvs() {
+  localStorage.setItem(LS.convs, JSON.stringify(state.convs.slice(0, 100)));
+}
+function saveSettings() {
+  localStorage.setItem(LS.settings, JSON.stringify(state.settings));
+}
+function applyTheme() {
+  const t = state.settings.theme;
+  const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}
+
+/* ---------------- markdown ---------------- */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// 工具调用展示（网页本身不发 tools，但网关支持后可能收到 tool_calls，别渲染成乱码）
+function toolBlockHtml(list, incomplete = false) {
+  if (!Array.isArray(list) || !list.length) return '';
+  return list
+    .map((c) => {
+      const fn = (c && c.function) || {};
+      return (
+        `<details class="toolcall${incomplete ? ' incomplete' : ''}"><summary>${incomplete ? '工具调用未完成' : '工具调用'} · ` +
+        esc(fn.name || '(未命名)') +
+        '</summary><pre>' +
+        esc(fn.arguments || '{}') +
+        '</pre></details>'
+      );
+    })
+    .join('');
+}
+
+function markdown(src) {
+  const blocks = [];
+  let s = String(src);
+
+  s = s.replace(/```([\w+-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    blocks.push({ lang, code });
+    return '\u0000B' + (blocks.length - 1) + '\u0000';
+  });
+
+  const inl = [];
+  s = s.replace(/`([^`\n]+)`/g, (_, code) => {
+    inl.push(code);
+    return '\u0000I' + (inl.length - 1) + '\u0000';
+  });
+
+  const lines = s.split('\n');
+  const out = [];
+  let list = null;
+
+  for (const line of lines) {
+    const ul = line.match(/^\s*[-*+]\s+(.*)$/);
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (ul || ol) {
+      const type = ul ? 'ul' : 'ol';
+      if (list !== type) { if (list) out.push('</' + list + '>'); out.push('<' + type + '>'); list = type; }
+      out.push('<li>' + inline((ul || ol)[1]) + '</li>');
+      continue;
+    }
+    if (list) { out.push('</' + list + '>'); list = null; }
+    out.push(line);
+  }
+  if (list) out.push('</' + list + '>');
+
+  let joined = out.join('\n');
+  const chunks = joined.split(/\n{2,}/).map((blk) => {
+    const t = blk.trim();
+    if (!t) return '';
+    if (t.startsWith('<ul>') || t.startsWith('<ol>')) return t;
+    if (t.startsWith('\u0000')) return inline(t);
+
+    const tl = t.split('\n');
+    if (tl.length >= 2 && tl[0].trim().startsWith('|') && /^\|?[\s|:-]*-[\s|:-]*$/.test(tl[1].trim())) {
+      const cells = (l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((s) => s.trim());
+      const head = cells(tl[0]);
+      const rows = tl.slice(2).filter((l) => l.trim().startsWith('|')).map(cells);
+      let html = '<table><thead><tr>' + head.map((h) => '<th>' + inline(h) + '</th>').join('') + '</tr></thead><tbody>';
+      for (const r of rows) html += '<tr>' + r.map((c) => '<td>' + inline(c) + '</td>').join('') + '</tr>';
+      return html + '</tbody></table>';
+    }
+
+    const hm = t.match(/^(#{1,6})\s+(.*)$/);
+    if (hm) {
+      const n = Math.min(hm[1].length, 4);
+      return '<h' + n + '>' + inline(hm[2]) + '</h' + n + '>';
+    }
+    if (/^(-{3,}|\*{3,})$/.test(t)) return '<hr>';
+    if (t.startsWith('>')) return '<blockquote>' + inline(t.replace(/^>\s?/gm, '')) + '</blockquote>';
+    return '<p>' + inline(t).replace(/\n/g, '<br>') + '</p>';
+  });
+
+  function inline(text) {
+    let h = esc(text);
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer noopener">$1</a>');
+    h = h.replace(/\u0000I(\d+)\u0000/g, (_, i) => '<code>' + esc(inl[+i]) + '</code>');
+    h = h.replace(/\u0000B(\d+)\u0000/g, (_, i) => {
+      const b = blocks[+i];
+      return '<pre><code>' + esc(b.code.replace(/\n$/, '')) + '</code></pre>';
+    });
+    return h;
+  }
+
+  return chunks.filter(Boolean).join('\n');
+}
+
+/* ---------------- api ---------------- */
+function authHeaders() {
+  const h = { 'content-type': 'application/json' };
+  if (state.settings.key) h.authorization = 'Bearer ' + state.settings.key;
+  return h;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  return data;
+}
+
+const RIGHT_ADDR = 'http://127.0.0.1:8787';
+const UI_VERSION = 'v22';
+let retryTimer = 0;
+let pendingModelList = null;
+
+function showBanner(on, detail) {
+  const b = $('#banner');
+  if (!b) return;
+  b.hidden = !on;
+  if (on && detail) $('#bannerDetail').innerHTML = detail;
+}
+
+// 连不上就每 3 秒自己重试，服务起来后不用刷新页面
+function scheduleRetry() {
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(async () => {
+    const s = await refreshStatus();
+    if (!s) scheduleRetry();
+  }, 3000);
+}
+
+// 把浏览器侧的真实情况回传一份到服务端日志，排查"没回复"时用
+function report(payload) {
+  try {
+    fetch('/v1/report', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...payload, v: UI_VERSION }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {
+    /* 上报失败不能影响主流程 */
+  }
+}
+
+async function refreshStatus() {
+  try {
+    const s = await api('/v1/status', { cache: 'no-store' });
+    state.adapter = s.adapter;
+    state.health = { lan: s.lan || [], host: s.host, gatewayKeyRequired: s.gatewayKeyRequired };
+    // A catalogue refresh must not change the model of an in-flight answer.
+    if (state.streaming) pendingModelList = s.models;
+    else {
+      pendingModelList = null;
+      applyModelList(s.models);
+    }
+    renderLanBox();
+    const dot = $('#dot');
+    const defaultAvailable = s.models.some((model) => (model.provider || providerOf(model.id)) === (s.defaultProvider || s.adapter));
+    dot.className = 'dot ' + (defaultAvailable ? 'on' : 'off');
+    const LABEL = {
+      trae: s.hasToken ? '上游 token 已就绪' : '缺少上游 token',
+      qoder: 'Qoder 官方 CLI 已就绪',
+      doubao: '豆包桌面授权已就绪',
+      solo: s.hasToken ? 'solo 通道就绪' : '缺少上游 token',
+      openai: s.hasUpstreamKey ? '上游 API 就绪' : '缺少上游密钥',
+    };
+    $('#statusLabel').textContent = defaultAvailable ? LABEL[s.adapter] || `${s.adapter} 通道就绪` : '默认通道未启用';
+    clearTimeout(retryTimer);
+    showBanner(false);
+    return s;
+  } catch (e) {
+    $('#dot').className = 'dot off';
+    $('#statusLabel').textContent = '网关未连接';
+    let detail;
+    // 先用无鉴权的 /health 判断：服务到底没起来，还是只是缺密钥
+    let health = null;
+    try {
+      const hr = await fetch('/health', { cache: 'no-store' });
+      if (hr.ok) health = await hr.json();
+    } catch (e2) {
+      /* 服务不可达 */
+    }
+    if (health && health.gatewayKeyRequired) {
+      $('#statusLabel').textContent = '需要网关密钥';
+      detail =
+        '网关在 <code>' + esc(location.host || '本机') + '</code> 上运行，但要求 <code>Authorization: Bearer &lt;网关密钥&gt;</code>。<br>' +
+        '请在「设置 → 网关密钥」里填入启动时设置的 <code>GATEWAY_KEY</code>。';
+      if (health.lan && health.lan.length) {
+        detail +=
+          '<br>局域网内其它设备可以用：' +
+          health.lan.map((n) => '<code>http://' + esc(n.address) + ':' + esc(location.port || '8787') + '</code>').join('、');
+      }
+      state.health = health;
+      renderLanBox();
+      const dlg = $('#dlg');
+      if (dlg && !dlg.open) {
+        dlg.showModal();
+        setTimeout(() => $('#keyIn').focus(), 50);
+      }
+    } else if (/密钥|401/.test(e.message)) {
+      $('#statusLabel').textContent = '密钥无效';
+      detail = '网关密钥不正确，请到「设置」里重新填写。';
+    } else if (location.protocol === 'file:' || (location.port && location.port !== '8787')) {
+      detail =
+        '当前打开的是 <code>' + esc(location.protocol === 'file:' ? location.href.slice(0, 60) : location.host) +
+        '</code>，它没有后端接口。请改用 <code>' + RIGHT_ADDR + '</code> 打开。';
+    } else {
+      detail = '服务进程可能已停止。在 trae-gateway 目录双击 <code>start.bat</code> 启动，然后点右边「重试」。';
+    }
+    showBanner(true, detail);
+    scheduleRetry();
+    return null;
+  }
+}
+
+function renderModels() {
+  const sel = $('#modelSel');
+  // 优先用服务端下发的 provider（通道）分组；旧数据没有 provider 字段时退回正则猜测
+  const groupOf = (m) => m.provider || providerOf(m.id);
+  const GROUP_LABEL = { qoder: 'Qoder CN', 'qoder-intl': 'Qoder 国际版', workbuddy: 'WorkBuddy', 'minimax-code': 'MiniMax Code', doubao: '豆包', solo: 'SOLO（可能排队）', trae: 'TRAE 基础', openai: '上游 API' };
+  const filter = $('#providerSel');
+  const previous = filter.value;
+  const providers = [...new Set(state.models.map(groupOf))];
+  filter.replaceChildren(new Option('全部通道', ''), ...providers.map((p) => new Option(GROUP_LABEL[p] || p, p)));
+  filter.value = providers.includes(previous) ? previous : '';
+  const visible = state.models.filter((m) => !filter.value || groupOf(m) === filter.value);
+  if (visible.length && !visible.some((m) => m.id === state.model)) {
+    state.model = visible[0].id;
+    if (state.cur) state.cur.model = state.model;
+  }
+  const groups = new Map();
+  for (const m of visible) {
+    const p = groupOf(m);
+    if (!groups.has(p)) groups.set(p, []);
+    groups.get(p).push(m);
+  }
+  sel.innerHTML = '';
+  for (const [p, list] of groups) {
+    const og = document.createElement('optgroup');
+    og.label = GROUP_LABEL[p] || p;
+    for (const m of list) {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = (m.display || m.id) + (m.context ? '  ·  ' + Math.round(m.context / 1000) + 'k' : '');
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  // 模型清单会变（换上游、换账号都会），localStorage 里的旧 ID 必须先校验再回退，
+  // 否则下拉框会显示空白，发消息时报 "unknown model"。
+  if (state.models.length) {
+    const known = new Set(state.models.map((m) => m.id));
+    if (!known.has(state.model)) {
+      const convModel = state.convs[0]?.model;
+      state.model = known.has(convModel) ? convModel : state.models[0].id;
+      if (state.cur) state.cur.model = state.model;
+    }
+  } else state.model = '';
+  sel.value = state.model;
+  updateCtx();
+}
+
+function applyModelList(models) {
+  state.models = Array.isArray(models) ? models : [];
+  renderModels();
+  const productCount = new Set(state.models.map((m) => m.provider || providerOf(m.id))).size;
+  $('#brandSub').textContent = state.models.length ? `${productCount} 个通道 · ${state.models.length} 个模型` : '暂无已启用模型';
+}
+
+function updateCtx() {
+  const m = state.models.find((x) => x.id === state.model);
+  $('#ctxPill').textContent = m ? (m.context ? Math.round(m.context / 1000) + 'k 上下文' : (m.provider || '')) : '';
+}
+
+/* ---------------- conversations ---------------- */
+function newConv() {
+  const c = { id: uid(), title: '新对话', model: state.model, messages: [], at: Date.now() };
+  state.convs.unshift(c);
+  state.cur = c;
+  saveConvs();
+  renderConvs();
+  renderMessages();
+  $('#input').focus();
+  $('#side').classList.remove('open');
+}
+
+function openConv(id) {
+  state.cur = state.convs.find((c) => c.id === id) || null;
+  if (state.cur?.model && state.models.some((m) => m.id === state.cur.model)) {
+    state.model = state.cur.model;
+    $('#providerSel').value = '';
+    renderModels();
+  }
+  renderConvs();
+  renderMessages();
+  $('#side').classList.remove('open');
+}
+
+function delConv(id, ev) {
+  ev.stopPropagation();
+  state.convs = state.convs.filter((c) => c.id !== id);
+  if (state.cur?.id === id) state.cur = null;
+  saveConvs();
+  renderConvs();
+  renderMessages();
+}
+
+function renderConvs() {
+  const box = $('#convs');
+  if (!state.convs.length) {
+    box.innerHTML = '<div class="emptyhint">还没有对话</div>';
+    return;
+  }
+  box.innerHTML = '';
+  for (const c of state.convs) {
+    const el = document.createElement('div');
+    el.className = 'conv' + (state.cur?.id === c.id ? ' active' : '');
+    el.onclick = () => openConv(c.id);
+    const t = document.createElement('span');
+    t.className = 't';
+    t.textContent = c.title;
+    const x = document.createElement('button');
+    x.className = 'x';
+    x.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+    x.onclick = (e) => delConv(c.id, e);
+    el.append(t, x);
+    box.appendChild(el);
+  }
+}
+
+/* ---------------- messages ---------------- */
+function renderMessages() {
+  const wrap = $('#msgWrap');
+  wrap.innerHTML = '';
+  if (!state.cur || !state.cur.messages.length) {
+    wrap.innerHTML = emptyHtml();
+    bindChips();
+    return;
+  }
+  for (const m of state.cur.messages) {
+    wrap.appendChild(msgEl(m));
+  }
+  scrollDown();
+}
+
+function emptyHtml() {
+  return '<div class="empty">' +
+    '<div class="big"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.4L20 10l-5.8 1.6L12 17l-2.2-5.4L4 10l5.8-1.6z"/></svg></div>' +
+    '<h2>想聊点什么</h2>' +
+    '<p>选好模型直接问。请求经本地网关转发，历史只留在浏览器里。</p>' +
+    '<div class="chips">' +
+    ['写一个 Python 快速排序并加注释', '解释一下什么是 CAP 定理', '把这段 JSON 转成 TypeScript 类型', '帮我写一封请假邮件'].map((t) => '<button class="chip">' + esc(t) + '</button>').join('') +
+    '</div></div>';
+}
+
+function bindChips() {
+  document.querySelectorAll('.chip').forEach((b) => {
+    b.onclick = () => { $('#input').value = b.textContent; autoGrow(); $('#input').focus(); };
+  });
+}
+
+function streamEndHtml(m) {
+  if (!m.error) return '';
+  const note = m.endState === 'cancelled' || m.endState === 'incomplete';
+  return `<div class="${note ? 'stream-note' : 'err'}" role="${note ? 'status' : 'alert'}">${esc(m.error)}</div>`;
+}
+
+function msgEl(m) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + (m.role === 'user' ? 'user' : 'bot');
+  const av = document.createElement('div');
+  av.className = 'av';
+  av.textContent = m.role === 'user' ? '你' : 'T';
+  const body = document.createElement('div');
+  body.className = 'body';
+  const who = document.createElement('div');
+  who.className = 'who';
+  who.textContent = m.role === 'user' ? '你' : (m.model || state.model);
+
+  const content = document.createElement('div');
+  content.className = 'content';
+  content.innerHTML = m.role === 'user'
+    ? '<p>' + esc(m.content).replace(/\n/g, '<br>') + '</p>'
+    : markdown(m.content || '') + toolBlockHtml(m.toolCalls, Boolean(m.endState && m.endState !== 'complete')) + streamEndHtml(m);
+
+  if (m.reasoning) {
+    const d = document.createElement('details');
+    d.className = 'reasoning';
+    d.innerHTML = '<summary>推理过程</summary><div class="inner">' + esc(m.reasoning) + '</div>';
+    body.append(who, d, content);
+  } else {
+    body.append(who, content);
+  }
+
+  if (m.role !== 'user' && m.content) {
+    const foot = document.createElement('div');
+    foot.className = 'msgfoot';
+    const cp = document.createElement('button');
+    cp.className = 'mini';
+    cp.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg> 复制';
+    cp.onclick = () => { copyText(m.content).then(() => { cp.textContent = '已复制'; setTimeout(() => cp.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg> 复制', 1200); }).catch(() => { cp.textContent = '复制失败'; }); };
+    foot.appendChild(cp);
+    body.appendChild(foot);
+  }
+
+  el.append(av, body);
+  return el;
+}
+
+function scrollDown(force) {
+  const box = $('#msgs');
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 160;
+  if (force || near) box.scrollTop = box.scrollHeight;
+}
+
+/* ---------------- send ---------------- */
+async function send() {
+  if (state.streaming) return;
+  const input = $('#input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!state.models.length) {
+    // 页面可能是先于服务打开的空壳，先就地重连一次，别让用户干等
+    $('#statusLabel').textContent = '正在重连网关…';
+    const status = await refreshStatus();
+    if (!state.models.length) {
+      $('#statusLabel').textContent = status ? '暂无已启用通道' : '网关未连接';
+      showBanner(true, status ? '服务已启动。请先登录并配置需要使用的官方客户端，再刷新模型列表。' : '还没拿到模型列表。确认服务在跑（双击 <code>start.bat</code>），再点右边「重试」。');
+      return;
+    }
+  }
+
+  if (!state.cur) newConv();
+
+  const conv = state.cur;
+  conv.model = state.model;
+  conv.messages.push({ role: 'user', content: text });
+  if (conv.title === '新对话') {
+    conv.title = text.slice(0, 24) + (text.length > 24 ? '…' : '');
+    renderConvs();
+  }
+  input.value = '';
+  autoGrow();
+  renderMessages();
+
+  const bot = { role: 'assistant', content: '', reasoning: '', model: state.model };
+  bot.toolCalls = [];
+  conv.messages.push(bot);
+  const el = msgEl(bot);
+  $('#msgWrap').appendChild(el);
+  const contentEl = el.querySelector('.content');
+  contentEl.innerHTML = '<div class="thinkrow"><span class="spin"></span>思考中…</div>';
+  scrollDown(true);
+
+  setStreaming(true);
+  const started = Date.now();
+
+  const payload = {
+    model: state.model,
+    stream: true,
+    temperature: Number(state.settings.temp),
+    messages: [],
+  };
+  if (state.settings.system.trim()) payload.messages.push({ role: 'system', content: state.settings.system.trim() });
+  for (const m of conv.messages) {
+    if (m === bot) continue;
+    if (m.role === 'user' || (m.role === 'assistant' && m.content)) {
+      payload.messages.push({ role: m.role, content: m.content });
+    }
+  }
+
+  let raf = 0;
+  let reader = null;
+  let sawDone = false;
+  let finishReason = null;
+  let reasoningEl = null;
+  const toolSlots = new Map();
+  // 网页本身不发 tools，但网关可能被别的通道/reasoning 触发出 tool_calls，这里兜住不乱码
+  const toolBlock = () => toolBlockHtml(bot.toolCalls, Boolean(bot.endState && bot.endState !== 'complete'));
+  const paint = (final = false) => {
+    if (bot.reasoning) {
+      if (!reasoningEl) {
+        reasoningEl = document.createElement('details');
+        reasoningEl.className = 'reasoning';
+        reasoningEl.open = true;
+        reasoningEl.innerHTML = '<summary>推理过程</summary><div class="inner"></div>';
+        el.querySelector('.body').insertBefore(reasoningEl, contentEl);
+      }
+      reasoningEl.querySelector('.inner').textContent = bot.reasoning;
+    }
+    contentEl.innerHTML =
+      markdown(bot.content) + toolBlock() + streamEndHtml(bot) + (!final && state.streaming ? '<span class="caret"></span>' : '');
+    scrollDown();
+  };
+  const consumeData = (data) => {
+    const p = data.trim();
+    if (!p) return;
+    if (p === '[DONE]') { sawDone = true; return; }
+    let o;
+    try { o = JSON.parse(p); } catch { return; }
+    if (o.gateway_timing) bot.timing = o.gateway_timing;
+    const choice = o.choices?.[0];
+    if (choice?.finish_reason != null) { finishReason = String(choice.finish_reason); bot.finishReason = finishReason; }
+    if (o.error) {
+      if (finishReason === null && typeof o.error.upstream_finish_reason === 'string') {
+        finishReason = o.error.upstream_finish_reason;
+        bot.finishReason = finishReason;
+      }
+      throw Object.assign(new Error(o.error.message || '上游错误'), { code: o.error.code });
+    }
+    if (o.gateway_status) $('#hint').textContent = o.gateway_status;
+    const d = choice?.delta;
+    if (d?.reasoning_content) bot.reasoning += d.reasoning_content;
+    if (d?.content) bot.content += d.content;
+    for (const tc of d?.tool_calls || []) {
+      const index = Number.isInteger(tc.index) ? tc.index : 0;
+      if (!toolSlots.has(index)) toolSlots.set(index, { id: '', type: 'function', function: { name: '', arguments: '' } });
+      const cur = toolSlots.get(index);
+      if (tc.id) cur.id = tc.id;
+      if (tc.type) cur.type = tc.type;
+      if (tc.function?.name) cur.function.name = tc.function.name;
+      if (tc.function?.arguments) cur.function.arguments += tc.function.arguments;
+    }
+    bot.toolCalls = [...toolSlots.values()];
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); });
+  };
+
+  try {
+    state.ctrl = new AbortController();
+    const res = await fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+      signal: state.ctrl.signal,
+    });
+
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error((d.error && d.error.message) || ('HTTP ' + res.status));
+    }
+
+    reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let dataLines = [];
+    const line = (raw) => {
+      const value = raw.replace(/\r$/, '');
+      if (!value) {
+        if (dataLines.length) consumeData(dataLines.join('\n'));
+        dataLines = [];
+      } else if (value.startsWith('data:')) dataLines.push(value.slice(5).trimStart());
+    };
+
+    while (!sawDone) {
+      const { done, value } = await reader.read();
+      if (done) {
+        buf += dec.decode();
+        if (buf) line(buf);
+        if (dataLines.length) consumeData(dataLines.join('\n'));
+        break;
+      }
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while (!sawDone && (i = buf.indexOf('\n')) >= 0) {
+        const raw = buf.slice(0, i);
+        buf = buf.slice(i + 1);
+        line(raw);
+      }
+    }
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    if (!sawDone && finishReason === null) throw new Error('响应流提前结束，未收到完成标记；已保留收到的内容。');
+    if (finishReason === 'length' || finishReason === 'max_tokens') throw Object.assign(new Error('已达到上游输出上限，回答未完成。'), { incomplete: true });
+    if (finishReason === 'content_filter') throw Object.assign(new Error('上游内容过滤中止输出，回答未完成。'), { incomplete: true });
+    if (finishReason && !['stop', 'tool_calls', 'function_call'].includes(finishReason)) throw Object.assign(new Error(`上游提前结束（${finishReason}），回答未完成。`), { incomplete: true });
+    const hasTools = bot.toolCalls.some((call) => call.function?.name);
+    if (!bot.content.trim() && !hasTools) throw new Error(bot.reasoning ? '上游仅返回思考，未生成正文或工具调用。' : '上游未返回正文或工具调用。');
+    if ((finishReason === 'tool_calls' || finishReason === 'function_call') && !hasTools) throw new Error('上游以工具调用结束，但未返回完整工具调用。');
+    bot.endState = 'complete';
+    paint(true);
+    const secs = ((Date.now() - started) / 1000).toFixed(1);
+    $('#hint').textContent = secs + 's · ' + bot.content.length + ' 字符' +
+      (bot.timing?.queue_ms ? ' · 上游排队 ' + (bot.timing.queue_ms / 1000).toFixed(1) + 's' : '');
+    report({ t: 'send-ok', model: bot.model, len: bot.content.length, tools: bot.toolCalls.length, finishReason, ms: Date.now() - started });
+    saveConvs();
+  } catch (e) {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    const rawMsg = String(e.message || e);
+    let msg;
+    if (e.name === 'AbortError') {
+      msg = '（已停止）';
+    } else if (rawMsg === 'Failed to fetch') {
+      msg = bot.content || bot.reasoning || bot.toolCalls.length ? '响应流中断，已保留收到的内容。' : '连不上本地网关，服务可能已停止。请在项目目录运行 start.bat';
+    } else if (/unknown model/i.test(rawMsg)) {
+      // 浏览器缓存里的模型 ID 已被上游下线：清掉选择，重新拉清单并回退
+      msg = '模型 ' + state.model + ' 已不在服务端清单里，已自动切回可用模型，请重发一次。';
+      state.model = '';
+      refreshStatus();
+    } else {
+      msg = rawMsg;
+    }
+    bot.error = msg;
+    if (typeof e.code === 'string') bot.errorCode = e.code;
+    bot.endState = e.name === 'AbortError' ? 'cancelled' : e.incomplete ? 'incomplete' : 'error';
+    paint(true);
+    $('#hint').textContent = msg;
+    if (e.name !== 'AbortError') {
+      if (/token|未配置|401|403/i.test(msg)) {
+        $('#statusLabel').textContent = '需要上游 token';
+        $('#dot').className = 'dot off';
+      }
+    }
+    report({ t: e.incomplete ? 'send-incomplete' : 'send-fail', model: bot.model, msg: msg.slice(0, 150), partial: bot.content.length, reasoning: bot.reasoning.length, tools: bot.toolCalls.length, finishReason, errorCode: bot.errorCode });
+    saveConvs();
+  } finally {
+    if (reader) await reader.cancel().catch(() => {});
+    setStreaming(false);
+  }
+}
+
+function setStreaming(on) {
+  state.streaming = on;
+  const btn = $('#sendBtn');
+  btn.classList.toggle('stop', on);
+  btn.innerHTML = on
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  btn.title = on ? '停止' : '发送';
+  if (!on && pendingModelList !== null) {
+    const models = pendingModelList;
+    pendingModelList = null;
+    applyModelList(models);
+  }
+}
+
+function autoGrow() {
+  const t = $('#input');
+  t.style.height = 'auto';
+  t.style.height = Math.min(t.scrollHeight, 200) + 'px';
+}
+
+/* ---------------- settings ---------------- */
+// 服务端监听 0.0.0.0 时，把局域网可访问的地址显示出来
+function renderLanBox() {
+  const f = $('#lanField');
+  const box = $('#lanBox');
+  if (!f || !box) return;
+  const lan = (state.health && state.health.lan) || [];
+  if (!lan.length) {
+    f.hidden = true;
+    return;
+  }
+  f.hidden = false;
+  const port = location.port || '8787';
+  const needKey = Boolean(state.health && state.health.gatewayKeyRequired);
+  box.innerHTML =
+    lan
+      .map(
+        (n) =>
+          '<div><code>http://' + esc(n.address) + ':' + esc(port) + '</code> <span class="hint">' + esc(n.name) + '</span></div>',
+      )
+      .join('') +
+    '<div class="hint">在同一局域网的手机/电脑上直接打开上面的地址即可。' +
+    (needKey ? '首次访问要在「网关密钥」里填启动时设置的 GATEWAY_KEY。' : '当前是免密模式，不用填密钥。') +
+    'Windows 防火墙需要放行该端口的入站 TCP。</div>';
+}
+
+/* ---------------- 积分 / 签到 ---------------- */
+
+const PROVIDER_LABEL = { qoder: 'Qoder CN', 'qoder-intl': 'Qoder 国际版', workbuddy: 'WorkBuddy', 'minimax-code': 'MiniMax Code', doubao: '豆包', solo: 'Trae SOLO', trae: 'Trae CN', openai: '上游 API' };
+const PROVIDER_USAGE_URL = {
+  qoder: 'https://qoder.com.cn/account/usage',
+  'qoder-intl': 'https://qoder.com/account/usage',
+  workbuddy: 'https://www.workbuddy.cn/profile/plans-usage',
+  trae: 'https://www.trae.cn/dashboard',
+  solo: 'https://www.trae.cn/dashboard',
+};
+const USAGE_START_FORMAT = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+function openQuota() {
+  $('#side').classList.remove('open');
+  $('#quotaPanel').classList.add('open');
+  document.body.classList.add('quota-open');
+  syncQuotaPanel();
+  $('#closeQuotaPanel').focus();
+  loadQuota();
+}
+
+function closeQuota() {
+  $('#quotaPanel').classList.remove('open');
+  document.body.classList.remove('quota-open');
+  syncQuotaPanel();
+  $('#quotaBtn').focus();
+}
+
+function syncQuotaPanel() {
+  const narrow = matchMedia('(max-width:1060px)').matches;
+  const open = $('#quotaPanel').classList.contains('open');
+  $('#quotaPanel').inert = narrow && !open;
+  $('#quotaPanel').setAttribute('aria-hidden', String(narrow && !open));
+  $('#quotaBtn').setAttribute('aria-expanded', String(narrow && open));
+  if (!narrow) document.body.classList.remove('quota-open');
+  else document.body.classList.toggle('quota-open', open);
+}
+
+function fmtNum(n) {
+  if (n == null || n === '' || Number.isNaN(Number(n))) return '—';
+  const v = Number(n);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+
+function automationSummary(automation) {
+  const el = $('#automationState');
+  const known = typeof automation.enabled === 'boolean';
+  el.classList.toggle('pending', !automation.enabled);
+  el.lastElementChild.textContent = !known ? '自动签到状态同步中' :
+    automation.running ? '正在检查每日签到' : automation.enabled ? '自动签到已启用' : '自动签到未启用';
+}
+
+function autoCheckinStatus(name, ci, automation) {
+  const run = automation.providers?.[name] || {};
+  const unavailable = ci?.supported === false || ci?.enabled === false || ci?.active === false;
+  if (unavailable) return { text: '无活动', detail: ci.reason || '当前账号没有进行中的签到活动', kind: '' };
+  if (ci?.done === true) return { text: automation.enabled ? '已自动签到' : '今日已签到', detail: ci.today?.title || '', kind: 'ok' };
+  if (ci?.error || run.lastError) {
+    const error = ci?.error || run.lastError;
+    const detail = error.message || String(error);
+    const text = name === 'doubao' && /code 710010702/.test(detail)
+      ? automation.enabled ? '签到失败，稍后自动重试' : '签到失败'
+      : '自动签到暂未完成';
+    return { text, detail, kind: 'error' };
+  }
+  if (ci?.claimable) return {
+    text: automation.enabled === false ? '等待自动签到启用' : automation.running ? '自动领取中' : '等待自动领取',
+    detail: ci.nextReward?.amount != null ? `${ci.nextReward.title || '每日奖励'} +${fmtNum(ci.nextReward.amount)}` : '', kind: 'wait',
+  };
+  if (run.lastSuccessAt && new Date(run.lastSuccessAt).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }) === new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })) {
+    return { text: '已自动签到', detail: '', kind: 'ok' };
+  }
+  return { text: ci ? '无活动' : '等待自动检查', detail: '', kind: '' };
+}
+
+function quotaCard(name, q, ci, automation, shared = false) {
+  const title = shared ? 'Trae / SOLO' : PROVIDER_LABEL[name] || name;
+  const check = autoCheckinStatus(name, ci || q?.checkin, automation);
+  const heading = `<div class="qhead"><strong>${esc(title)}</strong>${shared ? '<span class="qshared">共享额度</span>' : `<span class="qplan" title="${esc(q?.plan || q?.planTier || '')}">${esc(q?.plan || q?.planTier || '')}</span>`}</div>`;
+  const checkHtml = `<div class="qcheck ${check.kind}" title="${esc(check.detail)}"><span>${esc(check.text)}${check.detail && check.kind === 'wait' ? ` · ${esc(check.detail)}` : ''}</span></div>`;
+  const { today, month, since } = q?.usagePeriods ?? {};
+  const hasToday = Number.isFinite(today);
+  const hasMonth = Number.isFinite(month);
+  const startedAt = typeof since === 'string' ? new Date(since) : null;
+  const usageStart = startedAt && Number.isFinite(startedAt.getTime())
+    ? `<time datetime="${startedAt.toISOString()}">记录始于 ${esc(USAGE_START_FORMAT.format(startedAt))}</time>` : '';
+  const detailUrl = PROVIDER_USAGE_URL[name];
+  const usageLink = (!hasToday || !hasMonth) && typeof detailUrl === 'string'
+    ? `<a href="${esc(detailUrl)}" target="_blank" rel="noopener noreferrer">官网用量</a>` : '';
+  const periodHtml = `<div class="qrows">
+    <div class="qrow"><span>今日已用</span><b>${fmtNum(hasToday ? today : null)}</b></div>
+    <div class="qrow"><span>本月已用</span><b>${fmtNum(hasMonth ? month : null)}</b></div>
+    <div class="qperiod-source">
+      <span title="仅统计本地已记录的账户额度变化">本地统计 · 北京时间</span>
+      ${usageStart}${usageLink}
+    </div>
+  </div>`;
+  if (q == null || q.error) return `<section class="qcard" data-quota-provider="${esc(name)}">${heading}<div class="qnotice">${q?.error ? '额度查询暂不可用' : '暂无额度数据'}</div>${periodHtml}${checkHtml}</section>`;
+  const total = q.total ?? q.limit;
+  const used = q.used;
+  const remaining = q.remaining ?? q.quota ?? (total != null && used != null ? Math.max(0, total - used) : null);
+  const ratio = q.ratio != null ? Number(q.ratio) : total && used != null ? used / total : null;
+  const pct = ratio != null && Number.isFinite(ratio) ? Math.max(0, Math.min(100, Math.round(ratio * 100))) : null;
+  return `<section class="qcard" data-quota-provider="${esc(name)}">
+    ${heading}<div class="qbalance">${fmtNum(remaining)}<small>剩余额度</small></div>
+    ${total != null || used != null ? `<div class="qmeta"><span>已用 ${fmtNum(used)} / ${fmtNum(total)}</span>${pct != null ? `<span>${pct}%</span>` : ''}</div>` : ''}
+    ${pct != null ? `<div class="qbar" role="progressbar" aria-label="${esc(title)}已用额度" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>` : ''}
+    ${periodHtml}
+    ${q.fastRequests != null ? `<div class="qrow" style="margin-top:8px"><span>快速请求</span><b>${fmtNum(q.fastRequests)}</b></div>` : ''}
+    ${shared ? '<div class="qnote">TRAE 与 SOLO 使用同一账号，额度只计一份。</div>' : ''}
+    ${checkHtml}
+  </section>`;
+}
+
+let quotaLoading = false;
+async function loadQuota(force = false) {
+  if (quotaLoading) return;
+  quotaLoading = true;
+  const body = $('#quotaBody');
+  const refresh = $('#refreshQuota');
+  refresh.disabled = true;
+  body.setAttribute('aria-busy', 'true');
+  if (force) $('#quotaUpdated').textContent = '正在更新…';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const opts = { headers: authHeaders(), cache: 'no-store', signal: controller.signal };
+    const [rq, rc] = await Promise.all([fetch('/v1/quota', opts), fetch('/v1/checkin', opts).catch(() => null)]);
+    if (!rq.ok) throw new Error('HTTP ' + rq.status);
+    const d = await rq.json();
+    let checkins = {};
+    try { if (rc?.ok) checkins = await rc.json(); } catch {}
+    const checks = checkins.providers || {};
+    const automation = checkins.automation || {};
+    automationSummary(automation);
+    const providers = d.providers || {};
+    const order = ['qoder', 'qoder-intl', 'workbuddy', 'minimax-code', 'doubao', 'trae', 'solo', 'openai'];
+    const keys = Object.keys(providers).sort((a, b) => (order.indexOf(a) < 0 ? 99 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 99 : order.indexOf(b)));
+    const shared = Object.hasOwn(providers, 'solo') && Object.hasOwn(providers, 'trae');
+    state.quota = d;
+    body.innerHTML = keys.filter((k) => !(shared && k === 'solo')).map((k) => {
+      const q = shared && k === 'trae' && (!providers.trae || providers.trae.error) ? providers.solo : providers[k];
+      return quotaCard(k, q, checks[k] || (k === 'trae' ? checks.solo : null), automation, shared && k === 'trae');
+    }).join('') || '<div class="qnotice">暂无已启用通道</div>';
+    $('#quotaUpdated').textContent = `更新于 ${new Date(d.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+  } catch (e) {
+    if (!state.quota) body.innerHTML = '<div class="qnotice">暂时无法读取账户额度，请稍后刷新。</div>';
+    $('#quotaUpdated').textContent = '刷新失败 · ' + (e.name === 'AbortError' ? '请求超时' : String(e.message || e));
+  } finally {
+    clearTimeout(timeout);
+    quotaLoading = false;
+    refresh.disabled = false;
+    body.setAttribute('aria-busy', 'false');
+  }
+}
+
+function openSettings() {
+  $('#keyIn').value = state.settings.key;
+  $('#tokenIn').value = '';
+  $('#tokenIn').placeholder = 'Trae CN / SOLO 当前有效的访问令牌';
+  $('#sysIn').value = state.settings.system;
+  $('#tempIn').value = state.settings.temp;
+  $('#tempVal').textContent = Number(state.settings.temp).toFixed(1);
+  $('#themeIn').value = state.settings.theme;
+  $('#saveMsg').textContent = '';
+  renderLanBox();
+  $('#dlg').showModal();
+}
+
+async function saveAll() {
+  state.settings.key = $('#keyIn').value.trim();
+  state.settings.system = $('#sysIn').value;
+  state.settings.temp = Number($('#tempIn').value);
+  state.settings.theme = $('#themeIn').value;
+  saveSettings();
+  applyTheme();
+
+  const token = $('#tokenIn').value.trim();
+  const msg = $('#saveMsg');
+  if (token && (state.adapter === 'trae' || state.adapter === 'solo')) {
+    try {
+      await fetch('/v1/token', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ token }),
+      }).then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error((d.error && d.error.message) || ('HTTP ' + r.status));
+        return d;
+      });
+      state.settings.token = '';
+      saveSettings();
+      msg.style.color = 'var(--ok)';
+      msg.textContent = '已保存，token 已注入服务端';
+    } catch (e) {
+      msg.style.color = 'var(--danger)';
+      msg.textContent = 'token 注入失败：' + e.message;
+      await refreshStatus();
+      return;
+    }
+  } else {
+    msg.textContent = '已保存';
+  }
+  await refreshStatus();
+  setTimeout(() => $('#dlg').close(), 700);
+}
+
+/* ---------------- boot ---------------- */
+function boot() {
+  console.log(
+    '%c trae-gateway UI ' + UI_VERSION + ' ',
+    'background:#5b6cff;color:#fff;padding:2px 6px;border-radius:3px;font-weight:600',
+  );
+  report({ t: 'boot', where: location.protocol + '//' + location.host, ua: navigator.userAgent.slice(0, 70) });
+  load();
+  if (state.convs.length) {
+    state.cur = state.convs[0];
+    // 只在清单里确实有这个 ID 时才采用；否则留给 renderModels 统一回退
+    if (state.cur.model && (!state.models.length || state.models.some((m) => m.id === state.cur.model))) {
+      state.model = state.cur.model;
+    }
+  }
+
+  // 事件绑定放在渲染之前：渲染一旦抛异常，按钮也不能跟着失灵
+  $('#newChat').onclick = newConv;
+  $('#settingsBtn').onclick = openSettings;
+  $('#closeDlg').onclick = () => $('#dlg').close();
+  $('#cancelDlg').onclick = () => $('#dlg').close();
+  $('#saveDlg').onclick = saveAll;
+  $('#tempIn').oninput = (e) => { $('#tempVal').textContent = Number(e.target.value).toFixed(1); };
+  $('#themeIn').onchange = (e) => { state.settings.theme = e.target.value; applyTheme(); };
+  $('#menuBtn').onclick = () => $('#side').classList.toggle('open');
+  $('#bannerRetry').onclick = () => refreshStatus();
+  $('#quotaBtn').onclick = openQuota;
+  $('#closeQuotaPanel').onclick = closeQuota;
+  $('#quotaShade').onclick = closeQuota;
+  $('#refreshQuota').onclick = () => loadQuota(true);
+  matchMedia('(max-width:1060px)').addEventListener('change', syncQuotaPanel);
+  syncQuotaPanel();
+  $('#providerSel').onchange = () => renderModels();
+
+  $('#modelSel').onchange = (e) => {
+    state.model = e.target.value;
+    if (state.cur) state.cur.model = state.model;
+    updateCtx();
+  };
+
+  const input = $('#input');
+  input.addEventListener('input', autoGrow);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  $('#sendBtn').onclick = () => {
+    if (state.streaming) {
+      state.ctrl?.abort();
+      return;
+    }
+    send();
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); newConv(); }
+    if (matchMedia('(max-width:1060px)').matches && $('#quotaPanel').classList.contains('open')) {
+      if (e.key === 'Escape') { e.preventDefault(); closeQuota(); }
+      if (e.key === 'Tab') {
+        const controls = [...$('#quotaPanel').querySelectorAll('button:not(:disabled), a[href]')];
+        const first = controls[0], last = controls.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+  });
+
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (state.settings.theme === 'auto') applyTheme();
+  });
+
+  // 渲染放最后，且各自兜住异常：坏数据最多让列表空白，不会让整页报废
+  try {
+    renderConvs();
+  } catch (e) {
+    console.error('renderConvs 失败', e);
+    report({ t: 'js-error', msg: 'renderConvs: ' + String(e.message || e).slice(0, 120) });
+  }
+  try {
+    renderMessages();
+  } catch (e) {
+    console.error('renderMessages 失败', e);
+    report({ t: 'js-error', msg: 'renderMessages: ' + String(e.message || e).slice(0, 120) });
+    $('#msgWrap').innerHTML = '';
+  }
+
+  refreshStatus().then((s) => {
+    if (s) loadQuota();
+    if (s && (s.adapter === 'trae' || s.adapter === 'solo') && !s.hasToken) {
+      $('#hint').textContent = '还没填上游 token —— 点左下角齿轮';
+    }
+  });
+  setInterval(() => { if (!document.hidden) loadQuota(); }, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { refreshStatus(); loadQuota(); }
+  });
+  input.focus();
+}
+
+// 任何未捕获异常都进服务端日志，别再猜了
+window.addEventListener('error', (e) => {
+  report({
+    t: 'js-error',
+    msg: String(e.message || '').slice(0, 150),
+    at: String(e.filename || '').split('/').pop() + ':' + e.lineno,
+  });
+});
+window.addEventListener('unhandledrejection', (e) => {
+  report({ t: 'promise-error', msg: String(e.reason && e.reason.message ? e.reason.message : e.reason).slice(0, 150) });
+});
+
+boot();
+</script>
+</body>
+</html>

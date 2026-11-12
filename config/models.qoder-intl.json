@@ -1,0 +1,91 @@
+{
+  "provider": "qoder-intl",
+  "source": "Official worker SDK initialize (host GUI session)",
+  "updatedAt": "2026-11-04T07:45:37.525Z",
+  "models": [
+    {
+      "id": "auto",
+      "display": "Auto",
+      "context": 200000,
+      "reasoning": false
+    },
+    {
+      "id": "ultimate",
+      "display": "Ultimate",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "efficient",
+      "display": "Efficient",
+      "context": 200000,
+      "reasoning": false
+    },
+    {
+      "id": "smodel",
+      "display": "Sonus",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "cmodel",
+      "display": "Cantus",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "qmodel_38max",
+      "display": "Qwen3.8-Max",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "qfmodel",
+      "display": "Qwen3.8-Flash",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "kmodel_latest",
+      "display": "Kimi-K3.1-Pro",
+      "context": 200000,
+      "reasoning": false
+    },
+    {
+      "id": "kmodel",
+      "display": "Kimi-K2.8-Preview",
+      "context": 200000,
+      "reasoning": false
+    },
+    {
+      "id": "gmodel",
+      "display": "GLM-5.3",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "gfmodel",
+      "display": "GLM-5.3-Flash",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "dmodel",
+      "display": "DeepSeek-V4-Pro",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "dfmodel",
+      "display": "DeepSeek-Flash",
+      "context": 200000,
+      "reasoning": true
+    },
+    {
+      "id": "mmodel",
+      "display": "MiniMax-M3.1-Flash",
+      "context": 200000,
+      "reasoning": true
+    }
+  ]
+}
