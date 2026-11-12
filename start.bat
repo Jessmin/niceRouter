@@ -28,9 +28,9 @@ if errorlevel 1 goto missing_node
 
 :run_gateway
 echo Using Node.js: "%NODE_EXE%"
-"%NODE_EXE%" --env-file-if-exists=.env tools\start-gateway.mjs
+"%NODE_EXE%" --env-file-if-exists=.env tools\start-gateway.mjs "%~1"
 set "GATEWAY_EXIT=%ERRORLEVEL%"
-if not "%GATEWAY_EXIT%"=="0" pause
+if not "%GATEWAY_EXIT%"=="0" if /I not "%~1"=="--stop" pause
 exit /b %GATEWAY_EXIT%
 
 :validate_node

@@ -30,7 +30,7 @@ test('explicit logout and invalid JSON do not fall through to session loading', 
     (error) => /无法读取 WorkBuddy 登录/.test(error.message) && !error.message.includes('private-data'));
 });
 
-for (const layout of ['5.5', '5.6', '5.8']) {
+for (const layout of ['5.5', '5.6', '5.8', '5.9']) {
   test(`encrypted desktop login uses the matching ${layout} crypto module`, () => {
     const key = Buffer.alloc(32, 23);
     const clear = Buffer.from(syntheticToken);
@@ -59,12 +59,14 @@ for (const layout of ['5.5', '5.6', '5.8']) {
       dispose() { disposed = true; }
     }
     const initialize = () => { initialized = true; };
-    const modules = layout === '5.5'
-      ? { 'dist.js': { normalizeAtRestKeyPayload, parseSupportedEnvelope, AtRestCrypto } }
-      : layout === '5.6'
-        ? { 'app-lifetime-job.js': { applyAppLifetimeJobEnv() {} },
-          'process-cpu-sampler.js': { init_dist: initialize, normalizeAtRestBuildKeyCapabilities, parseSupportedEnvelope, AtRestCrypto } }
-        : { 'app-lifetime-job.js': { D: initialize, G: normalizeAtRestBuildKeyCapabilities, K: parseSupportedEnvelope, R: AtRestCrypto } };
+    const modules = {
+      '5.5': { 'dist.js': { normalizeAtRestKeyPayload, parseSupportedEnvelope, AtRestCrypto } },
+      '5.6': { 'app-lifetime-job.js': { applyAppLifetimeJobEnv() {} },
+        'process-cpu-sampler.js': { init_dist: initialize, normalizeAtRestBuildKeyCapabilities, parseSupportedEnvelope, AtRestCrypto } },
+      '5.8': { 'app-lifetime-job.js': { D: initialize, G: normalizeAtRestBuildKeyCapabilities, K: parseSupportedEnvelope, R: AtRestCrypto } },
+      '5.9': { 'dist.js': { s: initialize, T: normalizeAtRestBuildKeyCapabilities, E: parseSupportedEnvelope,
+        get v() { return initialized ? AtRestCrypto : undefined; } } },
+    }[layout];
     const options = input(record(wrapper), { load: (filename) => {
       seen.push(basename(filename));
       return modules[basename(filename)];
@@ -79,6 +81,21 @@ for (const layout of ['5.5', '5.6', '5.8']) {
 
 test('unknown crypto layouts and corrupt envelopes fail before native key loading', () => {
   const guessedExports = { D: () => assert.fail('must not invoke an unrelated minified export'), G() {}, K() {}, R() {} };
-  assert.throws(() => readWorkbuddySession(install, authFile, input(record(wrapper), { load: () => guessedExports })), /加密登录格式尚不兼容/);
+  assert.throws(() => readWorkbuddySession(install, authFile, input(record(wrapper), { load: (file) =>
+    basename(file) === 'package.json' ? { version: '5.10.0' } : guessedExports })),
+  /WorkBuddy 5\.10\.0 .*credential-runtime-layout/);
   assert.throws(() => readWorkbuddySession(install, authFile, input(record({ ...wrapper, envelope: '==invalid' }))), /登录文件格式无效/);
+});
+
+test('unsupported field diagnostics reveal only the validated release and fixed category', () => {
+  const unsupported = { ...wrapper, scheme: 'asym-v1', envelope: 'sensitive-value' };
+  const load = (file) => {
+    assert.equal(basename(file), 'package.json');
+    return { version: '5.10.0' };
+  };
+  assert.throws(() => readWorkbuddySession(install, authFile, input(record(unsupported), { load })),
+    { message: 'WorkBuddy 5.10.0 的加密登录读取尚不兼容（auth-field-asymmetric）。' });
+  assert.throws(() => readWorkbuddySession(install, authFile, input(record({ envelope: 'sensitive-value' }), {
+    load: () => ({ version: 'malformed\r\nsensitive-value' }),
+  })), { message: 'WorkBuddy（版本未知） 的加密登录读取尚不兼容（auth-field-wrapper）。' });
 });

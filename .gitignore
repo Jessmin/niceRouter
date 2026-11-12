@@ -40,6 +40,7 @@ __pycache__/
 !/tools/test_desktop_folders.mjs
 !/tools/test_desktop_installs.mjs
 !/tools/test_dsml_mixed.mjs
+!/tools/test_gateway_watch.mjs
 !/tools/test_harness_reasoning_gateway.mjs
 !/tools/test_markup.mjs
 !/tools/test_network_access.mjs

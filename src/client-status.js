@@ -51,7 +51,7 @@ export function desktopClientStatuses(enabledNames, pendingFolders) {
   }
 
   return [
-    row('trae', found('trae'), config.trae.token ? '' : '已识别安装。请在设置里填入转发接口的 Cloud-IDE-JWT，详见 README。', { channels: ['trae', 'solo'] }),
+    row('trae', found('trae'), config.trae.token ? '' : '已识别安装。Trae 和 SOLO 的转发授权待配置，桌面登录尚无法自动接入。', { channels: ['trae', 'solo'] }),
     row('qoder', qoderExe || found('qoder'), !qoderExe || !qoderWorker
       ? '检查 Qoder CN 安装位置及 QODER_EXE、QODER_WORKER。'
       : !config.qoder.token ? qoderAuthIssue || '已接入转发。额度和签到尚未读取到本机授权，请登录 Qoder CN 后重启网关。' : '',

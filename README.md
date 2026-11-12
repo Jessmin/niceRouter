@@ -17,9 +17,9 @@ Copy-Item .env.example .env
 .\start.bat
 ```
 
-`start.bat` 会寻找可用的 Node.js，并打开本机网页。也可以在项目目录执行 `npm start` 前台运行，或用 `node --env-file-if-exists=.env src/server.js` 直接启动。保持终端运行，用 `Ctrl+C` 停止。请从独立的 PowerShell 启动，避免让网关继承上层 AI 客户端的沙盒环境。[本机网页](http://127.0.0.1:8787/)
+`start.bat` 会寻找可用的 Node.js，启动开发监听并打开本机网页。改动 `src/` 下的运行代码、WorkBuddy CLI 封装或随附模型配置时，网关会自动重载。运行 `stop.bat` 可以停止这份项目的监听进程及其网关。请从独立的 PowerShell 启动，避免让网关继承上层 AI 客户端的沙盒环境。[本机网页](http://127.0.0.1:8787/)
 
-如需指定 Node.js 路径，在启动前设置 `$env:NODE_EXE = 'C:\path\to\node.exe'`。如果 `start.bat` 发现已有网关，它会打开该实例。更新源码后请重启，并通过 `/v1/status` 确认构建已切换。
+如需指定 Node.js 路径，在启动前设置 `$env:NODE_EXE = 'C:\path\to\node.exe'`。从旧版普通进程切换时，先退出旧实例，再运行 `start.bat`。要改 `.env`，请先运行 `stop.bat`，修改后再启动。也可以用 `npm start` 在前台运行固定版本，并用 `Ctrl+C` 停止。
 
 ## 通道与账号配置
 
@@ -41,7 +41,7 @@ Copy-Item .env.example .env
 
 ### Trae CN 与 SOLO
 
-网关会从已识别的 Trae CN 安装读取应用 ID 和构建信息，补齐转发请求头。转发接口的 `Cloud-IDE-JWT` 可通过 `.env` 的 `TRAE_TOKEN` 配置，也可在本机网页的「设置」中填入，网页填写的令牌只在本次运行中保留。
+网关会从已识别的 Trae CN 安装读取应用 ID 和构建信息，补齐转发请求头。Trae IDE 与 SOLO 的转发需要单独的 `Cloud-IDE-JWT` 授权。已有有效令牌时，可通过 `.env` 的 `TRAE_TOKEN` 配置，也可在本机网页的「设置」中填入。网页填写的令牌只在本次运行中保留。
 
 已有 `config/trae-session.json` 或 `.env` 中的 `TRAE_HEADERS`、`TRAE_DEVICE_ID` 会优先使用。手工配置会话时，`headers.authorization` 使用 `Cloud-IDE-JWT <本机令牌>`，`headers.x-ide-token` 使用同一令牌。[Trae 会话模板](config/trae-session.example.json)
 
@@ -73,7 +73,7 @@ node --env-file-if-exists=.env tools/refresh-doubao-auth.mjs
 
 ### 其他本机配置
 
-- WorkBuddy 登录读取已验证 5.5.6、5.6.2 和 5.8.3 的会话格式。首次启动缺少模型缓存时，网关先显示随附目录，再后台向官方服务刷新目录。
+- WorkBuddy 登录读取已验证 5.5.6、5.6.2、5.8.3 和 5.9.4 的会话格式。首次启动缺少模型缓存时，网关先显示随附目录，再后台向官方服务刷新目录。
 - WorkBuddy 的非默认安装或配置目录可设置 `WORKBUDDY_INSTALL_DIR`、`WORKBUDDY_CONFIG_DIR`。MiniMax Code 可设置 `MINIMAX_CODE_INSTALL_DIR`、`MINIMAX_CODE_DATA_DIR`。
 - 其他 OpenAI 兼容上游可配置 `UPSTREAM_BASE`、`UPSTREAM_KEY`，然后使用 `openai::` 前缀。`MODELS_FILE` 可指定一份与上游匹配的清单。[模型清单格式](config/models.json)
 

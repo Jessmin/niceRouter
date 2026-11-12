@@ -11,13 +11,22 @@ const ACCOUNT_ENDPOINTS = Object.freeze({
   catalog: '/v3/config',
 });
 
-// These are the official crypto modules in the 5.8, 5.6 and 5.5 package layouts.
-// Check the function identities because a minified name may mean something else
-// in a different build.
+function authCompatibilityError(installDir, load, category) {
+  let version;
+  try { version = load(path.join(installDir, 'resources/app.asar/package.json'))?.version; }
+  catch { /* The installed package may not expose version metadata. */ }
+  const release = typeof version === 'string' && version.length <= 48
+    && /^\d+\.\d+\.\d+(?:[.-][A-Za-z0-9]+)*(?:\+[A-Za-z0-9.-]+)?$/.test(version) ? ` ${version}` : '（版本未知）';
+  return new Error(`WorkBuddy${release} 的加密登录读取尚不兼容（${category}）。`);
+}
+
+// Each initializer belongs to a verified package layout. Check the semantic
+// function names before invoking it, because bundled aliases can change.
 function workbuddyCrypto(installDir, load) {
   const layouts = [
     ['app-lifetime-job.js', 'D', 'G', 'K', 'R'],
     ['process-cpu-sampler.js', 'init_dist', 'normalizeAtRestBuildKeyCapabilities', 'parseSupportedEnvelope', 'AtRestCrypto'],
+    ['dist.js', 's', 'T', 'E', 'v'],
     ['dist.js', null, 'normalizeAtRestKeyPayload', 'parseSupportedEnvelope', 'AtRestCrypto'],
   ];
   for (const [file, initialize, normalize, parse, crypto] of layouts) {
@@ -36,7 +45,7 @@ function workbuddyCrypto(installDir, load) {
       }
     } catch { /* An absent or incompatible module can belong to another supported layout. */ }
   }
-  throw new Error('此版本 WorkBuddy 的加密登录格式尚不兼容。请更新 WorkBuddy 客户端后重新登录。');
+  throw authCompatibilityError(installDir, load, 'credential-runtime-layout');
 }
 
 function readWorkbuddySession(installDir, authFile, {
@@ -57,7 +66,8 @@ function readWorkbuddySession(installDir, authFile, {
   }
   if (typeof token !== 'string') {
     if (token.$wbEncrypted !== 1 || Object.hasOwn(token, 'scheme') || typeof token.envelope !== 'string') {
-      throw new Error('此版本 WorkBuddy 的加密登录格式尚不兼容。请更新 WorkBuddy 客户端后重新登录。');
+      const category = token.$wbEncrypted === 1 && token.scheme === 'asym-v1' ? 'auth-field-asymmetric' : 'auth-field-wrapper';
+      throw authCompatibilityError(installDir, load, category);
     }
     const envelope = Buffer.from(token.envelope, 'base64');
     if (!envelope.length || envelope.toString('base64') !== token.envelope) {
