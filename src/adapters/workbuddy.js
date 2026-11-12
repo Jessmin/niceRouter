@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { promisify } from 'node:util';
 import { workbuddyConfig } from '../workbuddy-config.js';
+import { buildWorkbuddyCatalog, resolveWorkbuddyProduct } from '../workbuddy-models.js';
 import { formatReasoningHistory, toolsToPromptText, toolNames, ToolMarkupSieve } from '../toolcall.js';
 import { creditObservation } from '../usage-periods.js';
 import { isHarnessCompaction } from '../harness-compaction.js';
@@ -43,9 +44,11 @@ export function workbuddyCliEnv(cfg = workbuddyConfig) {
     ELECTRON_RUN_AS_NODE: '1', WORKBUDDY_INSTALL_DIR: cfg.installDir,
     WORKBUDDY_CLI_PATH: cfg.cliPath, WORKBUDDY_AUTH_FILE: cfg.authFile,
     WORKBUDDY_CONFIG_DIR: cfg.configDir, CODEBUDDY_CONFIG_DIR: cfg.configDir,
-    ACC_PRODUCT_CONFIG_PATH: cfg.productFile, CODEBUDDY_DISABLE_IDE: '1', DISABLE_TELEMETRY: '1',
+    CODEBUDDY_DISABLE_IDE: '1', DISABLE_TELEMETRY: '1',
     CODEBUDDY_HOST: 'workbuddy-desktop', CODEBUDDY_DISABLE_PLAN_MODE: '1', CODEBUDDY_CODE_EXPERIMENTAL_AGENT_TEAMS: '0',
   };
+  if (cfg.cachedProduct()) env.ACC_PRODUCT_CONFIG_PATH = cfg.productFile;
+  else delete env.ACC_PRODUCT_CONFIG_PATH;
   // Do not inherit another managed WorkBuddy run's private IPC identity.
   for (const k of Object.keys(env)) if (k.startsWith('CODEBUDDY_SIDECAR_') || k === 'CODEBUDDY_RUNTIME_INSTANCE_ID' || k === 'WORKBUDDY_AT_REST_ENCRYPTION') delete env[k];
   return env;
@@ -83,7 +86,7 @@ export const sanitizeWorkbuddyError = (s) => String(s || '').replace(/(Bearer\s+
 
 export async function* streamWorkbuddy({ model, messages, tools, functions, toolChoice, signal }) {
   const cfg = workbuddyConfig;
-  if (!cfg.enabled()) throw Object.assign(new Error('WorkBuddy client/login/product configuration is missing; open WorkBuddy and sign in.'), { status: 400, type: 'authentication_error' });
+  if (!cfg.enabled()) throw Object.assign(new Error('WorkBuddy client or login is missing; open WorkBuddy and sign in.'), { status: 400, type: 'authentication_error' });
   if (signal?.aborted) throw signal.reason || new Error('Aborted');
   const compaction = isHarnessCompaction(messages, toolChoice);
   const names = toolChoice === 'none' || compaction ? [] : toolNames(tools, functions);
@@ -316,8 +319,30 @@ export async function workbuddyQuota(query = workbuddyQuery) {
   };
 }
 
+let catalogRefreshAfter = 0;
+let fetchedModels;
+
+function workbuddyModels() {
+  const cfg = workbuddyConfig;
+  const cached = cfg.cachedProduct();
+  if (cached || !cfg.enabled()) return cfg.models(cached);
+
+  // Fill a cold catalogue without blocking gateway startup or /v1/models.
+  if (Date.now() >= catalogRefreshAfter) {
+    catalogRefreshAfter = Infinity;
+    void workbuddyQuery('catalog').then((remote) => {
+      if (!remote.models?.length) throw new Error('Empty WorkBuddy catalogue');
+      const models = buildWorkbuddyCatalog(resolveWorkbuddyProduct(cfg.packagedProduct(), remote)).models;
+      if (!models.length) throw new Error('No WorkBuddy chat models');
+      fetchedModels = models;
+      catalogRefreshAfter = Date.now() + 8 * 60_000;
+    }).catch(() => { catalogRefreshAfter = Date.now() + 30_000; });
+  }
+  return fetchedModels?.map((model) => ({ ...model })) || cfg.models(null);
+}
+
 export const workbuddyAdapter = {
-  name: 'workbuddy', models: () => workbuddyConfig.models(), stream: streamWorkbuddy,
+  name: 'workbuddy', models: workbuddyModels, stream: streamWorkbuddy,
   quota: workbuddyQuota,
   checkin: workbuddyCheckin,
   supportsTools: false,

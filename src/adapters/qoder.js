@@ -132,7 +132,7 @@ const SESSION_FILES = {
   'qoder-intl': new URL('../../config/qoder-intl-session.json', import.meta.url),
 };
 
-/** Use a persisted user ID only for the credential it describes. A replacement
+/** Use a user ID only for the credential it describes. A replacement
  * token without a matching local profile starts its own accounting scope. */
 function qoderUsageIdentity(cfg) {
   const provider = cfg.provider || 'qoder';
@@ -140,7 +140,9 @@ function qoderUsageIdentity(cfg) {
   let userId = null;
   try {
     const file = SESSION_FILES[provider];
-    const session = file && JSON.parse(readFileSync(file, 'utf8'));
+    const session = cfg.desktopSession?.token === cfg.token
+      ? cfg.desktopSession
+      : file && JSON.parse(readFileSync(file, 'utf8'));
     const id = session?.user?.id;
     if (session?.token === cfg.token && (typeof id === 'string' && id.trim() || Number.isSafeInteger(id))) userId = String(id);
   } catch { /* The current credential can still be tracked in its own scope. */ }

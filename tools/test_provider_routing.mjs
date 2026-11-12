@@ -14,7 +14,7 @@ const source = fileURLToPath(new URL('..', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'provider-routing-'));
 const children = [];
 const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
-  !/^(ADAPTER$|HOST$|PORT$|AUTO_CHECKIN_|TRAE_|SOLO_|QODER_|WORKBUDDY_|MINIMAX_|DOUBAO_|UPSTREAM_|GATEWAY_|MODELS_FILE$|USERPROFILE$|APPDATA$|LOCALAPPDATA$)/i.test(key)));
+  !/^(ADAPTER$|HOST$|PORT$|AUTO_CHECKIN_|AUTO_DISCOVER_DESKTOP_AUTH$|TRAE_|SOLO_|QODER_|WORKBUDDY_|MINIMAX_|DOUBAO_|UPSTREAM_|GATEWAY_|MODELS_FILE$|USERPROFILE$|APPDATA$|LOCALAPPDATA$)/i.test(key)));
 const env = { ...inherited, HOST: '127.0.0.1', AUTO_CHECKIN_ENABLED: '0',
   USERPROFILE: join(temporary, 'profile'), APPDATA: join(temporary, 'profile', 'Roaming'),
   LOCALAPPDATA: join(temporary, 'profile', 'Local'), TRAE_TOKEN: '', TRAE_HEADERS: '{}',
@@ -99,7 +99,7 @@ try {
   assert.deepEqual(twoStatus.providers.map(({ name }) => name), ['qoder', 'minimax-code']);
   const clients = Object.fromEntries(twoStatus.clients.map((client) => [client.name, client]));
   assert.equal(clients.qoder.state, 'setup_required');
-  assert.match(clients.qoder.message, /refresh-qoder-auth/);
+  assert.match(clients.qoder.message, /登录 Qoder CN 后重启网关/);
   assert.equal(clients.trae.installed, true);
   assert.equal(clients.trae.state, 'setup_required');
   assert.deepEqual(clients.trae.providers, []);

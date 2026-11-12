@@ -4,7 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { createWriteStream, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
-import { config } from './config.js';
+import { config, hydrateQoderDesktopSessions } from './config.js';
 import { traeAdapter } from './adapters/trae.js';
 import { soloAdapter } from './adapters/solo.js';
 import { qoderAdapter } from './adapters/qoder.js';
@@ -78,6 +78,9 @@ const ADAPTERS = {
 if (!Object.hasOwn(ADAPTERS, config.adapter)) {
   throw new Error(`未知 ADAPTER='${config.adapter}'，可选通道：${Object.keys(ADAPTERS).join(' / ')}`);
 }
+const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(config.host.toLowerCase());
+const qoderDesktopAuthAllowed = Boolean(isLoopback || config.gatewayKey);
+if (qoderDesktopAuthAllowed) hydrateQoderDesktopSessions();
 
 /**
  * 多 provider 注册表（SOP §1.2）
@@ -515,7 +518,7 @@ export const server = http.createServer(async (req, res) => {
           hasQuota: typeof adapter.quota === 'function',
           supportsTools: Boolean(adapter.supportsTools),
         })),
-        clients: desktopClientStatuses(providers.map(({ name }) => name)),
+        clients: desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed),
         hasToken: Boolean(config.trae.token),
         hasUpstreamKey: Boolean(config.upstream.apiKey),
         upstreamBase: config.upstream.baseUrl || '',
@@ -641,7 +644,7 @@ export const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, config.host, () => {
   const lan = lanAddresses();
-  log(`trae-gateway  pid=${process.pid}  监听 ${config.host}:${config.port}`);
+  log(`trae-gateway  pid=${process.pid}  监听 ${config.host}:${config.port}  build=${BUILD}`);
   log(`  本机       : http://127.0.0.1:${config.port}`);
   if (listensOnAll) {
     for (const n of lan) log(`  局域网(${n.name}) : http://${n.address}:${config.port}`);
@@ -650,7 +653,7 @@ server.listen(config.port, config.host, () => {
   }
   log(`  默认通道: ${defaultProvider().name}（模型 ID 可用 provider::model 前缀跨通道调用）`);
   const providers = enabledProviders();
-  const clients = desktopClientStatuses(providers.map(({ name }) => name));
+  const clients = desktopClientStatuses(providers.map(({ name }) => name), qoderDesktopAuthAllowed);
   log(`  客户端  : 识别到 ${clients.filter(({ installed }) => installed).length} 个桌面客户端，${providers.length} 个通道已接入`);
   for (const { name, adapter } of providers) {
     log(`  通道    : ${name.padEnd(10)} ${adapter.models().length} 个模型${typeof adapter.quota === 'function' ? '  [积分可查]' : ''}`);

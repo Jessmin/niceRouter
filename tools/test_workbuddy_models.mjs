@@ -1,8 +1,10 @@
 /** Offline catalogue checks; never launches a product or invokes a model. */
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { workbuddyCliEnv } from '../src/adapters/workbuddy.js';
+import { workbuddyConfig } from '../src/workbuddy-config.js';
 import { buildWorkbuddyCatalog, resolveWorkbuddyProduct } from '../src/workbuddy-models.js';
 
 let checks = 0;
@@ -143,6 +145,47 @@ test('an explicit empty remote catalogue is not replaced with stale local models
   assert.deepEqual(resolveWorkbuddyProduct({ models: [chat('old-only')] }, { models: [] }).models, []);
   assert.deepEqual(resolveWorkbuddyProduct({ models: [chat('default'), chat('old-only')] }, { models: [] }).models.map((model) => model.id), ['default']);
   assert.throws(() => resolveWorkbuddyProduct({ models: [] }, {}), /models array/);
+});
+
+test('a signed-in installation can use a catalogue before the first official cache exists', () => {
+  const installDir = mkdtempSync(join(tmpdir(), 'nice-router-workbuddy-'));
+  const cfg = { ...workbuddyConfig, installDir, configDir: installDir,
+    exePath: join(installDir, 'WorkBuddy.exe'), cliPath: join(installDir, 'cli', 'bin', 'codebuddy'),
+    authFile: join(installDir, 'desktop.info'), productFile: join(installDir, 'cache', 'product.json'),
+    modelsFile: join(installDir, 'models.json') };
+  const appArchive = join(installDir, 'resources', 'app.asar');
+  const packagedProduct = join(installDir, 'cli', 'product.json');
+  try {
+    for (const file of [cfg.exePath, cfg.cliPath, cfg.authFile, appArchive]) {
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, 'fixture');
+    }
+    writeFileSync(packagedProduct, JSON.stringify({ models: [chat('default'), chat('packaged-model')] }));
+    writeFileSync(cfg.modelsFile, JSON.stringify({ models: [{ id: 'snapshot-model' }] }));
+
+    assert.equal(existsSync(cfg.productFile), false);
+    assert.equal(cfg.enabled(), true);
+    assert.deepEqual(cfg.models().map(({ id }) => id), ['snapshot-model']);
+    assert.equal(workbuddyCliEnv(cfg).ACC_PRODUCT_CONFIG_PATH, undefined);
+
+    rmSync(cfg.modelsFile);
+    assert.deepEqual(cfg.models().map(({ id }) => id), ['default', 'packaged-model']);
+
+    mkdirSync(dirname(cfg.productFile));
+    writeFileSync(cfg.productFile, 'invalid product data');
+    assert.equal(workbuddyCliEnv(cfg).ACC_PRODUCT_CONFIG_PATH, undefined);
+    writeFileSync(cfg.productFile, JSON.stringify({ models: [chat('cached-model')] }));
+    assert.deepEqual(cfg.models().map(({ id }) => id), ['cached-model', 'default']);
+    assert.equal(workbuddyCliEnv(cfg).ACC_PRODUCT_CONFIG_PATH, cfg.productFile);
+
+    rmSync(cfg.productFile);
+    mkdirSync(cfg.productFile);
+    assert.equal(cfg.enabled(), true);
+    assert.deepEqual(cfg.models().map(({ id }) => id), ['default', 'packaged-model']);
+    assert.equal(workbuddyCliEnv(cfg).ACC_PRODUCT_CONFIG_PATH, undefined);
+  } finally {
+    rmSync(installDir, { recursive: true, force: true });
+  }
 });
 
 const cache = join(homedir(), '.workbuddy', 'cache', 'acc-product-config-v3.json');

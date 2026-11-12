@@ -42,6 +42,7 @@ __pycache__/
 !/tools/test_markup.mjs
 !/tools/test_provider_routing.mjs
 !/tools/test_qoder_compaction.mjs
+!/tools/test_qoder_desktop_session.mjs
 !/tools/test_qoder_mixed_close.mjs
 !/tools/test_stream_cancellation.mjs
 !/tools/test_tool_history.mjs

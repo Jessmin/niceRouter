@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { desktopInstall } from './desktop-installs.js';
+import { configuredQoderToken, discoverQoderDesktopSessions, QODER_OPENAPI_ORIGINS } from './qoder-desktop-session.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LOCAL_PROGRAMS = join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'Programs');
@@ -98,7 +99,7 @@ export const config = {
     provider: 'qoder',
     cliName: 'qoderclicn',
     // 积分 / 权益 / 活动接口全在 openapi 域名，且都是明文 Bearer（不需要签名）
-    openapiBase: process.env.QODER_OPENAPI || 'https://openapi.qoder.com.cn',
+    openapiBase: process.env.QODER_OPENAPI || QODER_OPENAPI_ORIGINS.qoder,
     // 关键：/sash/api/v1/me/campaigns 不带这个头会返回空列表（实测二进制搜索得出）
     clientType: Number(process.env.QODER_CLIENT_TYPE || 10),
     clientVersion: process.env.QODER_CLIENT_VERSION || '0.4.8',
@@ -115,8 +116,8 @@ export const config = {
     // 冷启动约 1.5~2s，正常回答 2~10s，给足余量
     timeoutMs: Number(process.env.QODER_TIMEOUT_MS || 300000),
     maxConcurrency: Number(process.env.QODER_MAX_CONCURRENCY || 4),
-    // 积分查询用的 access token（由 tools/refresh-qoder-auth.mjs 从 auth.v1.dat 解出后写入）
-    token: process.env.QODER_TOKEN || (tryReadJson('config/qoder-session.json') || {}).token || '',
+    // 手工令牌和未过期的配置优先。服务启动时用当前用户的桌面会话补齐空值。
+    token: configuredQoderToken(process.env.QODER_TOKEN, tryReadJson('config/qoder-session.json')),
     // 机器指纹（umid 缓存），活动/权益接口按它判定"这台机器能领什么"
     machine: readUmid(QODER_CN_UMID) || {},
   },
@@ -127,7 +128,7 @@ export const config = {
     provider: 'qoder-intl',
     cliName: 'qodercli',
     sdkHostToken: true,
-    openapiBase: process.env.QODER_INTL_OPENAPI || 'https://openapi.qoder.sh',
+    openapiBase: process.env.QODER_INTL_OPENAPI || QODER_OPENAPI_ORIGINS['qoder-intl'],
     clientType: Number(process.env.QODER_INTL_CLIENT_TYPE || 10),
     clientVersion: process.env.QODER_INTL_CLIENT_VERSION || '0.4.8',
     machineFile: process.env.QODER_INTL_UMID || join(homedir(), '.qoder', 'umid-cache.json'),
@@ -139,7 +140,7 @@ export const config = {
     cwd: process.env.QODER_INTL_CWD || ROOT,
     timeoutMs: Number(process.env.QODER_INTL_TIMEOUT_MS || 300000),
     maxConcurrency: Number(process.env.QODER_INTL_MAX_CONCURRENCY || 4),
-    token: process.env.QODER_INTL_TOKEN || (tryReadJson('config/qoder-intl-session.json') || {}).token || '',
+    token: configuredQoderToken(process.env.QODER_INTL_TOKEN, tryReadJson('config/qoder-intl-session.json')),
     machine: readUmid(process.env.QODER_INTL_UMID || join(homedir(), '.qoder', 'umid-cache.json')) || {},
   },
   qoderIntlModels: (tryReadJson('config/models.qoder-intl.json') || {}).models || [],
@@ -148,3 +149,7 @@ export const config = {
   models: readJson(process.env.MODELS_FILE || 'config/models.json').models,
   rootDir: ROOT,
 };
+
+export function hydrateQoderDesktopSessions() {
+  discoverQoderDesktopSessions(config);
+}

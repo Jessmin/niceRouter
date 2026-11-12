@@ -23,7 +23,7 @@ Copy-Item .env.example .env
 
 ## 通道与账号配置
 
-在运行网关的 Windows 用户下登录所需的官方客户端，再按表准备本机会话。完成配置后重启网关，通过 `/v1/models` 查看当前可用的完整模型 ID。
+用运行网关的 Windows 用户登录所需的官方客户端，再启动网关。Qoder 两版、WorkBuddy 和 MiniMax Code 会查找并复用当前用户的登录。通过 `/v1/models` 查看可用的完整模型 ID。
 
 首页计数表示已接入的模型通道。打开「设置 → 客户端接入状态」，可以查看本机识别到的应用、待配置原因和接入步骤。Windows 安装定位会核对常见目录和安装注册信息。安装位置特殊时，按下文设置对应的路径变量并重启网关。
 
@@ -31,19 +31,23 @@ Copy-Item .env.example .env
 | --- | --- | --- |
 | Trae IDE | `trae::` | 登录 Trae CN，配置有效的本机会话 |
 | Trae SOLO | `solo::` | 与 Trae IDE 共用 Trae CN 账号和会话 |
-| Qoder CN | `qoder::` | 登录 Qoder CN，网关使用本机官方 worker。额度和签到需要刷新本机会话 |
-| Qoder 国际版 | `qoder-intl::` | 登录 Qoder 国际版并刷新独立会话，网关使用本机官方 worker |
-| WorkBuddy | `workbuddy::` | 登录 WorkBuddy 并完成初始化，网关使用官方 CLI 和本机产品配置 |
+| Qoder CN | `qoder::` | 登录 Qoder CN，启动时自动读取本机额度与签到授权 |
+| Qoder 国际版 | `qoder-intl::` | 登录 Qoder 国际版，启动时自动读取该版本的本机会话 |
+| WorkBuddy | `workbuddy::` | 登录 WorkBuddy，网关复用官方 CLI 和登录信息，自动加载模型目录 |
 | MiniMax Code | `minimax-code::` | 登录 MiniMax Code 桌面端。国际区可设 `MINIMAX_CODE_REGION=global` |
 | 豆包 | `doubao::` | 登录豆包桌面端并刷新本机加密授权 |
 
 ### Trae CN 与 SOLO
 
+网关会识别 Trae 的安装位置。当前转发接口需要单独的 `Cloud-IDE-JWT` 授权。
+
 将 `config/trae-session.example.json` 复制为 `config/trae-session.json`，填写本机的 `deviceId` 和 `headers`。其中 `headers.authorization` 使用 `Cloud-IDE-JWT <本机令牌>`，`headers.x-ide-token` 使用同一令牌。也可通过 `.env` 的 `TRAE_TOKEN` 统一填入这两个授权头，用 `TRAE_HEADERS`（JSON 对象）和 `TRAE_DEVICE_ID` 补充本机客户端字段。[Trae 会话模板](config/trae-session.example.json)
 
 ### Qoder CN 与国际版
 
-登录对应的官方应用后，在项目目录运行对应的刷新命令。它们分别生成 `config/qoder-session.json` 和 `config/qoder-intl-session.json`。会话过期时，重新登录后再刷新。
+登录对应的官方应用后启动网关。网关会将当前 Windows 用户的有效授权读入内存，优先采用显式 Token 或未标明过期的会话文件。桌面会话过期时，在官方客户端重新登录并重启网关。
+
+自定义数据目录可设 `QODER_CN_USER_DATA` 或 `QODER_INTL_USER_DATA`。如需手动导出会话，以下工具分别生成 `config/qoder-session.json` 和 `config/qoder-intl-session.json`，也支持 `--user-data`。
 
 ```powershell
 # Qoder CN
@@ -67,6 +71,7 @@ node --env-file-if-exists=.env tools/refresh-doubao-auth.mjs
 
 ### 其他本机配置
 
+- WorkBuddy 有效的本机模型缓存可直接使用。首次启动缺少缓存时，网关先显示随附目录，再后台向官方服务刷新目录。
 - WorkBuddy 的非默认安装或配置目录可设置 `WORKBUDDY_INSTALL_DIR`、`WORKBUDDY_CONFIG_DIR`。MiniMax Code 可设置 `MINIMAX_CODE_INSTALL_DIR`、`MINIMAX_CODE_DATA_DIR`。
 - 其他 OpenAI 兼容上游可配置 `UPSTREAM_BASE`、`UPSTREAM_KEY`，然后使用 `openai::` 前缀。`MODELS_FILE` 可指定一份与上游匹配的清单。[模型清单格式](config/models.json)
 
@@ -91,10 +96,11 @@ Invoke-RestMethod "$gateway/v1/status" -Headers $headers
 | `HOST`、`PORT` | 默认监听 `127.0.0.1:8787`。通过局域网访问时，将 `HOST` 设为 `0.0.0.0` 并配置强随机 `GATEWAY_KEY` |
 | `ADAPTER` | 无前缀模型 ID 的默认通道，默认为 `solo`。带前缀时按前缀路由 |
 | `AUTO_CHECKIN_ENABLED` | 默认在启动后检查签到，运行期间每 15 分钟复查。设为 `0` 可关闭 |
+| `AUTO_DISCOVER_DESKTOP_AUTH` | 设为 `0` 可关闭 Qoder 桌面授权的自动读取。监听局域网时，启用自动读取需要设置 `GATEWAY_KEY` |
 | `GATEWAY_OPEN_BROWSER` | 设为 `0` 可禁止 `start.bat` 自动打开浏览器 |
 
 额度和签到结果可在网页或 `/v1/quota`、`/v1/checkin` 查看。用量账本记录网关观察到的扣费或可匹配的累计消耗变化，按北京时间分日和分月，重启后在本机继续记录。
 
 **豆包签到的已知问题**。部分领取请求返回 `710010702`，官方活动页点击签到也曾失败。网关保留失败状态，并在下一个检查周期复查。
 
-`.env`、`config/*-session.json`、DPAPI 授权、登录缓存、日志与账本请留在本机。迁移时在目标电脑上登录所需客户端并重新生成账号配置。[运维与故障定位](SOP.md)
+`.env`、`config/*-session.json`、DPAPI 授权、登录缓存、日志与账本请留在本机。迁移时在目标电脑上登录所需客户端，并按上文准备需要单独配置的会话。[运维与故障定位](SOP.md)
