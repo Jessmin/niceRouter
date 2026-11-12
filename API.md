@@ -31,13 +31,15 @@ Authorization: Bearer sk-any
 | --- | --- | --- |
 | `GET` | `/v1/models` | 已启用通道的真实模型列表 |
 | `POST` | `/v1/chat/completions` | 对话，支持 `stream` |
-| `GET` | `/v1/status` | 适配器、token 状态、可用地址及 build/pid/startedAt |
+| `GET` | `/v1/status` | 适配器、客户端接入状态、模型、可用地址及 build/pid/startedAt |
 | `GET` | `/v1/quota` | 各通道积分 / 套餐 / 签到奖励包 |
 | `GET` | `/v1/checkin` | 只读签到状态；可加 `?provider=trae` |
 | `POST` | `/v1/checkin` | 默认查询；body `{provider, action:"claim"}` 才领取。trae/solo 共享签到 |
 | `GET` | `/health` | 存活探针（无鉴权） |
 
 `/v1/completions`、`/v1/embeddings`、`/v1/images/*` **没有实现**，调用会 404。
+
+`/v1/status.clients` 列出支持的桌面客户端，每项有 `name`、`installed`、`providers`、`state` 和 `message`。`installed` 表示找到本机安装，`providers` 列出该客户端当前接入的模型通道，`state` 区分 `enabled`、`setup_required`、`not_detected` 和 `disabled`。额度或签到缺配置时，已接入的模型仍可出现在 `/v1/models`。Trae IDE 与 SOLO 合在一个客户端条目中。
 
 按用户授权，网关启动即补签，运行期间每15分钟自动检查并领取可领奖励。
 `GET /v1/quota` 和 `GET /v1/checkin` 保持只读，顶层 `automation` 提供启用状态、检查时间和各通道结果。

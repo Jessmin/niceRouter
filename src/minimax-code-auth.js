@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync, statSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { desktopInstall } from './desktop-installs.js';
 
 const CLIENT_ID = 'mcode-public';
 const AUDIENCE = 'agent-backend';
@@ -27,6 +28,7 @@ export const minimaxCodeConfig = Object.freeze({
   region: miniMaxCodeRegion(),
   dataDir: miniMaxCodeDataDir(),
   installDir: process.env.MINIMAX_CODE_INSTALL_DIR
+    || desktopInstall('minimax-code')?.installDir
     || join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'Programs', 'MiniMax Code'),
   timeoutMs: Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 180000,
 });
@@ -135,10 +137,9 @@ export async function getMiniMaxCodeAuth(options = {}) {
   return null;
 }
 
-let desktopVersionCache;
-export function readMiniMaxCodeDesktopVersion(installDir = minimaxCodeConfig.installDir) {
-  const archive = join(installDir, 'resources', 'app.asar');
-  if (desktopVersionCache?.archive === archive) return desktopVersionCache.version;
+const validDesktopVersion = (value) => typeof value === 'string' && /^\d+\.\d+\.\d+(?:[-.][\w.-]+)?$/u.test(value);
+
+function archiveVersion(archive) {
   let fd;
   try {
     fd = openSync(archive, 'r');
@@ -156,9 +157,38 @@ export function readMiniMaxCodeDesktopVersion(installDir = minimaxCodeConfig.ins
     const position = 8 + prefix.readUInt32LE(4) + offset;
     if (readSync(fd, bytes, 0, bytes.length, position) !== bytes.length) return null;
     const version = JSON.parse(bytes.toString('utf8')).version;
-    if (typeof version !== 'string' || !/^\d+\.\d+\.\d+(?:[-.][\w.-]+)?$/u.test(version)) return null;
-    desktopVersionCache = { archive, version };
-    return version;
+    return validDesktopVersion(version) ? version : null;
   } catch { return null; }
   finally { if (fd !== undefined) closeSync(fd); }
+}
+
+let desktopVersionCache;
+export function readMiniMaxCodeDesktopVersion(installDir = minimaxCodeConfig.installDir) {
+  const archive = join(installDir, 'resources', 'app.asar');
+  const manifests = ['app', 'app.asar.unpacked'].map((folder) => join(installDir, 'resources', folder, 'package.json'));
+  const exe = join(installDir, 'MiniMax Code.exe');
+  const stamps = [archive, ...manifests, exe].map((filename) => {
+    try {
+      const info = statSync(filename);
+      return info.isFile() ? `${info.size}:${info.mtimeMs}` : '';
+    } catch { return ''; }
+  });
+  const stamp = stamps.join('|');
+  if (desktopVersionCache?.installDir === installDir && desktopVersionCache.stamp === stamp) return desktopVersionCache.version;
+  let version = archiveVersion(archive);
+  if (!version && stamps.at(-1)) {
+    for (const filename of manifests) {
+      try {
+        const info = statSync(filename);
+        if (!info.isFile() || info.size > 65536) continue;
+        const manifest = JSON.parse(readFileSync(filename, 'utf8'));
+        if (manifest.name === '@mmx-agent/electron' && validDesktopVersion(manifest.version)) {
+          version = manifest.version;
+          break;
+        }
+      } catch { /* Try the other packaged layout. */ }
+    }
+  }
+  desktopVersionCache = { installDir, stamp, version };
+  return version;
 }

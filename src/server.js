@@ -22,6 +22,7 @@ import { createAutoCheckin } from './auto-checkin.js';
 import { CompletionState, completionErrorDetails } from './completion.js';
 import { captureFailedRequest } from './failure-capture.js';
 import { createUsageLedger, creditObservation } from './usage-periods.js';
+import { desktopClientStatuses } from './client-status.js';
 
 const sourceRoot = join(config.rootDir, 'src');
 const buildHasher = createHash('sha256');
@@ -84,8 +85,8 @@ if (!Object.hasOwn(ADAPTERS, config.adapter)) {
  * enabled() 决定该通道是否出现在 /v1/models 里。
  */
 const PROVIDERS = {
-  qoder: { adapter: qoderAdapter, enabled: () => existsSync(config.qoder.workerPath) },
-  'qoder-intl': { adapter: qoderIntlAdapter, enabled: () => Boolean(config.qoderIntl.token) && existsSync(config.qoderIntl.workerPath) && qoderIntlAdapter.models().length > 0 },
+  qoder: { adapter: qoderAdapter, enabled: () => existsSync(config.qoder.exePath) && existsSync(config.qoder.workerPath) },
+  'qoder-intl': { adapter: qoderIntlAdapter, enabled: () => Boolean(config.qoderIntl.token) && existsSync(config.qoderIntl.exePath) && existsSync(config.qoderIntl.workerPath) && qoderIntlAdapter.models().length > 0 },
   workbuddy: { adapter: workbuddyAdapter, enabled: () => workbuddyConfig.enabled() && workbuddyAdapter.models().length > 0 },
   'minimax-code': { adapter: minimaxAdapter, enabled: () => minimaxAdapter.enabled() },
   doubao: { adapter: doubaoAdapter, enabled: () => doubaoAdapter.enabled() },
@@ -116,9 +117,9 @@ function defaultProvider() {
 }
 
 /** 聚合所有已启用 provider 的模型：[{id:'solo::glm-5__max', display, provider, context?}] */
-function allModels() {
+function allModels(providers = enabledProviders()) {
   const out = [];
-  for (const { name, adapter } of enabledProviders()) {
+  for (const { name, adapter } of providers) {
     for (const m of adapter.models()) {
       if (typeof m === 'string') {
         out.push({ id: `${name}::${m}`, display: m, provider: name });
@@ -500,6 +501,7 @@ export const server = http.createServer(async (req, res) => {
 
   try {
     if (req.method === 'GET' && path === '/v1/status') {
+      const providers = enabledProviders();
       return json(res, 200, {
         build: BUILD,
         pid: process.pid,
@@ -507,12 +509,13 @@ export const server = http.createServer(async (req, res) => {
         automation: autoCheckin.status(),
         adapter: config.adapter,
         defaultProvider: defaultProvider().name,
-        providers: enabledProviders().map(({ name, adapter }) => ({
+        providers: providers.map(({ name, adapter }) => ({
           name,
           modelCount: adapter.models().length,
           hasQuota: typeof adapter.quota === 'function',
           supportsTools: Boolean(adapter.supportsTools),
         })),
+        clients: desktopClientStatuses(providers.map(({ name }) => name)),
         hasToken: Boolean(config.trae.token),
         hasUpstreamKey: Boolean(config.upstream.apiKey),
         upstreamBase: config.upstream.baseUrl || '',
@@ -520,7 +523,7 @@ export const server = http.createServer(async (req, res) => {
         host: config.host,
         lan: listensOnAll ? lanAddresses() : [],
         // 前端 renderModels 依赖对象结构 {id,display,provider,context}
-        models: allModels(),
+        models: allModels(providers),
       });
     }
 
@@ -646,8 +649,14 @@ server.listen(config.port, config.host, () => {
     log('  提醒       : Windows 首次可能拦防火墙，需放行该端口的入站 TCP');
   }
   log(`  默认通道: ${defaultProvider().name}（模型 ID 可用 provider::model 前缀跨通道调用）`);
-  for (const { name, adapter } of enabledProviders()) {
+  const providers = enabledProviders();
+  const clients = desktopClientStatuses(providers.map(({ name }) => name));
+  log(`  客户端  : 识别到 ${clients.filter(({ installed }) => installed).length} 个桌面客户端，${providers.length} 个通道已接入`);
+  for (const { name, adapter } of providers) {
     log(`  通道    : ${name.padEnd(10)} ${adapter.models().length} 个模型${typeof adapter.quota === 'function' ? '  [积分可查]' : ''}`);
+  }
+  for (const client of clients) {
+    if (client.state === 'setup_required') log(`  待配置  : ${client.name} · ${client.message}`);
   }
   log(`  密钥   : ${config.gatewayKey ? '已启用' : '未启用'}`);
   autoCheckin.start();

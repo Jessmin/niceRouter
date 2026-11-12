@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultDoubaoProfileDir, doubaoAuthFile } from './doubao-auth.js';
+import { desktopInstall } from './desktop-installs.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const profileDir = process.env.DOUBAO_USER_DATA || defaultDoubaoProfileDir();
@@ -11,14 +12,7 @@ function readJson(path) {
 }
 
 function installedVersion() {
-  let directory = process.env.DOUBAO_INSTALL_DIR;
-  if (!directory) {
-    try {
-      const bytes = readFileSync(join(profileDir, 'Last Browser'));
-      const path = bytes.toString(bytes.includes(0) ? 'utf16le' : 'utf8').replace(/\0/g, '').trim();
-      if (/[/\\]Doubao\.exe$/i.test(path)) directory = dirname(path);
-    } catch { /* A manually supplied profile can omit the browser installation hint. */ }
-  }
+  const directory = process.env.DOUBAO_INSTALL_DIR || desktopInstall('doubao')?.installDir;
   return directory && readJson(join(directory, 'manifest.json'))?.version || '2.34.6';
 }
 

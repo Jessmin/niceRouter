@@ -218,6 +218,7 @@ html[data-theme="dark"] .banner-btn:hover{background:rgba(255,255,255,.1)}
 .send:disabled{opacity:.35;cursor:not-allowed}
 .send.stop{background:var(--danger)}
 .footnote{text-align:center;font-size:11.5px;color:var(--muted);margin-top:7px}
+#clientSetupBtn{margin-left:8px;padding:0;border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 
 /* ---------- dialog ---------- */
 dialog{
@@ -231,6 +232,15 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .fieldset{display:flex;flex-direction:column;gap:6px}
 .fieldset label{font-size:12.5px;font-weight:500}
 .fieldset .hint{font-size:11.5px;color:var(--muted);line-height:1.55}
+#clientSetupField[hidden]{display:none}
+#clientSetupTitle{margin:0;font-size:12.5px;font-weight:500}
+#clientSetupList{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.client-setup-row{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px}
+.client-setup-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.client-setup-state{flex:none;font-size:11px;color:var(--muted)}
+.client-setup-state[data-state=enabled]{color:var(--ok)}
+.client-setup-state[data-state=setup_required]{color:var(--accent)}
+.client-setup-message{margin:3px 0 0;color:var(--muted);font-size:11.5px;line-height:1.55;overflow-wrap:anywhere}
 .fieldset input[type=text],.fieldset input[type=password],.fieldset textarea{
   border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;
   background:var(--bg);outline:none;width:100%;font-size:13px;
@@ -362,7 +372,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
-        <div class="footnote" id="hint">本地转发 · 仅供个人调试</div>
+        <div class="footnote"><span id="hint">本地转发 · 仅供个人调试</span><button type="button" id="clientSetupBtn" hidden>查看客户端接入状态</button></div>
       </div>
     </div>
   </main>
@@ -408,6 +418,10 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
       <input type="password" id="tokenIn" placeholder="Bearer 后面的那一串">
       <div class="hint">只发给本机服务，不落盘。过期后重新填一次即可，不用重启。</div>
     </div>
+    <section class="fieldset" id="clientSetupField" aria-labelledby="clientSetupTitle" hidden>
+      <h4 id="clientSetupTitle" tabindex="-1">客户端接入状态</h4>
+      <ul id="clientSetupList"></ul>
+    </section>
     <div class="fieldset">
       <label for="sysIn">系统提示词</label>
       <textarea id="sysIn" rows="3" placeholder="可选，会作为首条 system 消息"></textarea>
@@ -681,7 +695,7 @@ async function api(path, opts = {}) {
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v22';
+const UI_VERSION = 'v23';
 let retryTimer = 0;
 let pendingModelList = null;
 
@@ -718,17 +732,19 @@ function report(payload) {
 async function refreshStatus() {
   try {
     const s = await api('/v1/status', { cache: 'no-store' });
+    const models = Array.isArray(s.models) ? s.models : [];
     state.adapter = s.adapter;
     state.health = { lan: s.lan || [], host: s.host, gatewayKeyRequired: s.gatewayKeyRequired };
     // A catalogue refresh must not change the model of an in-flight answer.
-    if (state.streaming) pendingModelList = s.models;
+    if (state.streaming) pendingModelList = models;
     else {
       pendingModelList = null;
-      applyModelList(s.models);
+      applyModelList(models);
     }
+    renderClientSetup(s.clients, models.length);
     renderLanBox();
     const dot = $('#dot');
-    const defaultAvailable = s.models.some((model) => (model.provider || providerOf(model.id)) === (s.defaultProvider || s.adapter));
+    const defaultAvailable = models.some((model) => (model.provider || providerOf(model.id)) === (s.defaultProvider || s.adapter));
     dot.className = 'dot ' + (defaultAvailable ? 'on' : 'off');
     const LABEL = {
       trae: s.hasToken ? '上游 token 已就绪' : '缺少上游 token',
@@ -742,6 +758,7 @@ async function refreshStatus() {
     showBanner(false);
     return s;
   } catch (e) {
+    renderClientSetup();
     $('#dot').className = 'dot off';
     $('#statusLabel').textContent = '网关未连接';
     let detail;
@@ -784,6 +801,40 @@ async function refreshStatus() {
     scheduleRetry();
     return null;
   }
+}
+
+const CLIENT_LABEL = { trae: 'Trae CN / SOLO', qoder: 'Qoder CN', 'qoder-intl': 'Qoder 国际版', workbuddy: 'WorkBuddy', 'minimax-code': 'MiniMax Code', doubao: '豆包' };
+const CLIENT_STATE_LABEL = { enabled: '已接入', setup_required: '待配置', not_detected: '未检测到', disabled: '已停用' };
+
+function renderClientSetup(clients, modelCount = 0) {
+  const entries = Array.isArray(clients) ? clients.filter((item) => item && Object.hasOwn(CLIENT_LABEL, item.name) && Object.hasOwn(CLIENT_STATE_LABEL, item.state)) : [];
+  const list = $('#clientSetupList');
+  list.replaceChildren();
+  $('#clientSetupField').hidden = entries.length === 0;
+  for (const item of entries) {
+    const row = document.createElement('li');
+    row.className = 'client-setup-row';
+    row.dataset.client = item.name;
+    const heading = document.createElement('div');
+    heading.className = 'client-setup-heading';
+    const name = document.createElement('span');
+    name.textContent = CLIENT_LABEL[item.name];
+    const status = document.createElement('span');
+    status.className = 'client-setup-state';
+    status.dataset.state = item.state;
+    status.textContent = item.state === 'setup_required' && item.installed ? '已检测到 · 待配置' : CLIENT_STATE_LABEL[item.state];
+    heading.append(name, status);
+    row.append(heading);
+    if (typeof item.message === 'string' && item.message) {
+      const message = document.createElement('p');
+      message.className = 'client-setup-message';
+      message.textContent = item.message;
+      row.append(message);
+    }
+    list.append(row);
+  }
+  const button = $('#clientSetupBtn');
+  button.hidden = !entries.length || (modelCount > 0 && !entries.some(({ state }) => state === 'setup_required' || state === 'not_detected'));
 }
 
 function renderModels() {
@@ -837,7 +888,7 @@ function applyModelList(models) {
   state.models = Array.isArray(models) ? models : [];
   renderModels();
   const productCount = new Set(state.models.map((m) => m.provider || providerOf(m.id))).size;
-  $('#brandSub').textContent = state.models.length ? `${productCount} 个通道 · ${state.models.length} 个模型` : '暂无已启用模型';
+  $('#brandSub').textContent = state.models.length ? `${productCount} 个已接入通道 · ${state.models.length} 个模型` : '暂无已接入模型';
 }
 
 function updateCtx() {
@@ -998,7 +1049,8 @@ async function send() {
     const status = await refreshStatus();
     if (!state.models.length) {
       $('#statusLabel').textContent = status ? '暂无已启用通道' : '网关未连接';
-      showBanner(true, status ? '服务已启动。请先登录并配置需要使用的官方客户端，再刷新模型列表。' : '还没拿到模型列表。确认服务在跑（双击 <code>start.bat</code>），再点右边「重试」。');
+      if (status && !$('#clientSetupBtn').hidden) $('#hint').textContent = '暂无可选模型';
+      else showBanner(true, status ? '服务已启动。请先登录并配置需要使用的官方客户端，再刷新模型列表。' : '还没拿到模型列表。确认服务在跑（双击 <code>start.bat</code>），再点右边「重试」。');
       return;
     }
   }
@@ -1398,7 +1450,7 @@ async function loadQuota(force = false) {
   }
 }
 
-function openSettings() {
+function openSettings(focusClients = false) {
   $('#keyIn').value = state.settings.key;
   $('#tokenIn').value = '';
   $('#tokenIn').placeholder = 'Trae CN / SOLO 当前有效的访问令牌';
@@ -1409,6 +1461,7 @@ function openSettings() {
   $('#saveMsg').textContent = '';
   renderLanBox();
   $('#dlg').showModal();
+  if (focusClients && !$('#clientSetupField').hidden) $('#clientSetupTitle').focus();
 }
 
 async function saveAll() {
@@ -1467,7 +1520,8 @@ function boot() {
 
   // 事件绑定放在渲染之前：渲染一旦抛异常，按钮也不能跟着失灵
   $('#newChat').onclick = newConv;
-  $('#settingsBtn').onclick = openSettings;
+  $('#settingsBtn').onclick = () => openSettings();
+  $('#clientSetupBtn').onclick = () => openSettings(true);
   $('#closeDlg').onclick = () => $('#dlg').close();
   $('#cancelDlg').onclick = () => $('#dlg').close();
   $('#saveDlg').onclick = saveAll;
@@ -1540,7 +1594,7 @@ function boot() {
 
   refreshStatus().then((s) => {
     if (s) loadQuota();
-    if (s && (s.adapter === 'trae' || s.adapter === 'solo') && !s.hasToken) {
+    if (s && $('#clientSetupField').hidden && (s.adapter === 'trae' || s.adapter === 'solo') && !s.hasToken) {
       $('#hint').textContent = '还没填上游 token —— 点左下角齿轮';
     }
   });

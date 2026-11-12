@@ -2,10 +2,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
+import { desktopInstall } from './desktop-installs.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LOCAL_PROGRAMS = join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'Programs');
-const QODER_CN_INSTALL = join(LOCAL_PROGRAMS, 'Qoder CN');
+const QODER_CN_DESKTOP = desktopInstall('qoder');
+const QODER_INTL_DESKTOP = desktopInstall('qoder-intl');
+const QODER_CN_INSTALL = QODER_CN_DESKTOP?.installDir || join(LOCAL_PROGRAMS, 'Qoder CN');
+const QODER_INTL_INSTALL = QODER_INTL_DESKTOP?.installDir || join(LOCAL_PROGRAMS, 'Qoder');
 const QODER_CN_UMID = process.env.QODER_UMID || join(homedir(), '.qoder-cn', 'umid-cache.json');
 
 function readJson(relPath) {
@@ -101,10 +105,11 @@ export const config = {
     // 机器指纹：CLI 从 umid 缓存里取，缺了活动接口会返回 showCampaign:false
     machineFile: QODER_CN_UMID,
     // Electron 主程序当 node 用
-    exePath: process.env.QODER_EXE || join(QODER_CN_INSTALL, 'Qoder CN.exe'),
+    exePath: process.env.QODER_EXE || QODER_CN_DESKTOP?.exePath || join(QODER_CN_INSTALL, 'Qoder CN.exe'),
     // 这个 .obf.mjs 本身就是完整 CLI（qoderclicn）
     workerPath:
       process.env.QODER_WORKER ||
+      QODER_CN_DESKTOP?.workerPath ||
       join(QODER_CN_INSTALL, 'resources', 'app.asar.unpacked', 'node_modules', '@qoder-ai', 'qoder-cn-agent-sdk', 'dist', '_worker', 'qoder-worker-runtime.obf.mjs'),
     cwd: process.env.QODER_CWD || ROOT,
     // 冷启动约 1.5~2s，正常回答 2~10s，给足余量
@@ -128,7 +133,8 @@ export const config = {
     machineFile: process.env.QODER_INTL_UMID || join(homedir(), '.qoder', 'umid-cache.json'),
     // The international desktop executable is a GUI launcher; Node runs its worker directly.
     exePath: process.env.QODER_INTL_EXE || process.execPath,
-    workerPath: process.env.QODER_INTL_WORKER || join(LOCAL_PROGRAMS, 'Qoder', 'resources', 'app.asar.unpacked', 'node_modules', '@qoder-ai', 'qoder-agent-sdk', 'dist', '_worker', 'qoder-worker-runtime.obf.mjs'),
+    workerPath: process.env.QODER_INTL_WORKER || QODER_INTL_DESKTOP?.workerPath
+      || join(QODER_INTL_INSTALL, 'resources', 'app.asar.unpacked', 'node_modules', '@qoder-ai', 'qoder-agent-sdk', 'dist', '_worker', 'qoder-worker-runtime.obf.mjs'),
     configDir: process.env.QODER_INTL_CONFIG_DIR || join(homedir(), '.qoder'),
     cwd: process.env.QODER_INTL_CWD || ROOT,
     timeoutMs: Number(process.env.QODER_INTL_TIMEOUT_MS || 300000),

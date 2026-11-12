@@ -36,9 +36,11 @@ __pycache__/
 !/tools/test_auto_checkin.mjs
 !/tools/test_completion_gateway.mjs
 !/tools/test_doubao_account.mjs
+!/tools/test_desktop_installs.mjs
 !/tools/test_dsml_mixed.mjs
 !/tools/test_harness_reasoning_gateway.mjs
 !/tools/test_markup.mjs
+!/tools/test_provider_routing.mjs
 !/tools/test_qoder_compaction.mjs
 !/tools/test_qoder_mixed_close.mjs
 !/tools/test_stream_cancellation.mjs
