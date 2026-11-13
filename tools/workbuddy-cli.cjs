@@ -6,8 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ACCOUNT_ENDPOINTS = Object.freeze({
   summary: '/billing/meter/get-user-resource-summary',
-  checkin: '/billing/meter/checkin-status',
-  claim: '/billing/meter/daily-checkin',
+  // Desktop client moved check-in to /v2; the legacy /billing/meter/checkin-status
+  // now answers code 0 with active:false and no activity, so it can never claim.
+  checkin: '/v2/billing/meter/checkin-activity-status',
+  claim: '/v2/billing/meter/daily-checkin',
   catalog: '/v3/config',
 });
 
