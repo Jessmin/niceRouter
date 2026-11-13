@@ -302,6 +302,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .qcheck.ok{color:var(--ok)}
 .qcheck.wait{color:var(--accent)}
 .qcheck.error{color:var(--danger)}
+.qcheck-detail{display:block;color:var(--muted);overflow-wrap:anywhere}
 .qnote{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:8px}
 .qshared{font-size:10px;color:var(--accent);background:var(--accent-soft);padding:2px 6px;border-radius:5px;white-space:nowrap}
 .qnotice{font-size:11.5px;color:var(--muted);line-height:1.6;padding:8px 2px}
@@ -746,7 +747,7 @@ async function api(path, opts = {}) {
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v26';
+const UI_VERSION = 'v27';
 let retryTimer = 0;
 let pendingModelList = null;
 let keySettingsPrompted = false;
@@ -1670,10 +1671,16 @@ function autoCheckinStatus(name, ci, automation) {
   if (ci?.error || run.lastError) {
     const error = ci?.error || run.lastError;
     const detail = error.message || String(error);
-    const text = name === 'doubao' && /code 710010702/.test(detail)
-      ? automation.enabled ? '签到失败，稍后自动重试' : '签到失败'
-      : '自动签到暂未完成';
-    return { text, detail, kind: 'error' };
+    if ((name === 'trae' || name === 'solo') && /\bTrae\s+1001\b/i.test(detail)) {
+      return { text: 'Trae 授权失效', note: '请更新网关使用的 Trae 授权（1001）。', detail, kind: 'error' };
+    }
+    if (name === 'workbuddy' && /asar.*integrity|integrity check failed.*asar/i.test(detail)) {
+      return { text: 'WorkBuddy 安装文件校验失败', note: '请用官方安装包修复 WorkBuddy 后再试。', detail, kind: 'error' };
+    }
+    if (name === 'doubao' && /\b710010702\b/.test(detail)) {
+      return { text: automation.enabled ? '签到失败，稍后自动重试' : '签到失败', note: '豆包服务拒绝领取（710010702）。', detail, kind: 'error' };
+    }
+    return { text: ci?.error ? '签到状态查询失败' : '自动签到失败', detail, kind: 'error' };
   }
   if (ci?.claimable) return {
     text: automation.enabled === false ? '等待自动签到启用' : automation.running ? '自动领取中' : '等待自动领取',
@@ -1689,7 +1696,7 @@ function quotaCard(name, q, ci, automation, shared = false) {
   const title = shared ? 'Trae / SOLO' : PROVIDER_LABEL[name] || name;
   const check = autoCheckinStatus(name, ci || q?.checkin, automation);
   const heading = `<div class="qhead"><strong>${esc(title)}</strong>${shared ? '<span class="qshared">共享额度</span>' : `<span class="qplan" title="${esc(q?.plan || q?.planTier || '')}">${esc(q?.plan || q?.planTier || '')}</span>`}</div>`;
-  const checkHtml = `<div class="qcheck ${check.kind}" title="${esc(check.detail)}"><span>${esc(check.text)}${check.detail && check.kind === 'wait' ? ` · ${esc(check.detail)}` : ''}</span></div>`;
+  const checkHtml = `<div class="qcheck ${check.kind}" title="${esc(check.detail)}"><div><span>${esc(check.text)}${check.detail && check.kind === 'wait' ? ` · ${esc(check.detail)}` : ''}</span>${check.note ? `<small class="qcheck-detail">${esc(check.note)}</small>` : ''}</div></div>`;
   const { today, month, since } = q?.usagePeriods ?? {};
   const hasToday = Number.isFinite(today);
   const hasMonth = Number.isFinite(month);
@@ -1749,7 +1756,7 @@ async function loadQuota(force = false) {
     let checkins = {};
     try { if (rc?.ok) checkins = await rc.json(); } catch {}
     const checks = checkins.providers || {};
-    const automation = checkins.automation || {};
+    const automation = checkins.automation || d.automation || {};
     automationSummary(automation);
     const providers = d.providers || {};
     const order = ['qoder', 'qoder-intl', 'workbuddy', 'minimax-code', 'doubao', 'trae', 'solo', 'openai'];

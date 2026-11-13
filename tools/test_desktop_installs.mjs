@@ -119,6 +119,35 @@ test('resolve WorkBuddyAI through a validated icon path and honor explicit setti
   })).workerPath, null);
 });
 
+test('use the WorkBuddy executable paired with the ASAR in the installed release manifest', async () => {
+  const tempRoot = await realpath(tmpdir());
+  const dir = await realpath(await mkdtemp(path.join(tempRoot, 'nicerouter-workbuddy-install-')));
+  assert.equal(path.dirname(dir), tempRoot);
+  assert.match(path.basename(dir), /^nicerouter-workbuddy-install-/);
+  const resources = path.join(dir, 'resources');
+  const asar = path.join(resources, 'app.asar');
+  const worker = path.join(resources, 'app.asar.unpacked', 'cli', 'bin', 'codebuddy');
+  const oldExe = path.join(dir, 'WorkBuddy.exe');
+  const currentExe = path.join(dir, 'WorkBuddyAI.exe');
+  const manifest = path.join(resources, 'install-manifest.json');
+  const options = { env: { WORKBUDDY_INSTALL_DIR: dir } };
+  try {
+    await mkdir(path.dirname(worker), { recursive: true });
+    await Promise.all([oldExe, currentExe, asar, worker].map((file) => writeFile(file, 'fixture')));
+    assert.equal(desktopInstall('workbuddy', options).exePath, oldExe);
+    await writeFile(manifest, JSON.stringify({ appVersion: '5.9.4', files: ['WorkBuddyAI.exe', 'resources/app.asar'] }));
+    assert.deepEqual(desktopInstall('workbuddy', options), { installDir: dir, exePath: currentExe, workerPath: worker });
+    if (process.platform === 'win32') assert.equal(desktopInstallInFolder('workbuddy', dir).exePath, currentExe);
+    assert.equal(desktopInstall('workbuddy', { env: { ...options.env, WORKBUDDY_EXE: oldExe } }).exePath, oldExe);
+    await writeFile(manifest, JSON.stringify({ appVersion: '5.9.4', files: ['WorkBuddyAI.exe'] }));
+    assert.equal(desktopInstall('workbuddy', options).exePath, oldExe);
+    await writeFile(manifest, JSON.stringify({ appVersion: '5.9.4', files: ['../WorkBuddyAI.exe', 'resources/app.asar'] }));
+    assert.equal(desktopInstall('workbuddy', options).exePath, oldExe);
+  } finally {
+    await rm(dir, { recursive: true, force: true, maxRetries: 5 });
+  }
+});
+
 test('resolve the Doubao store layout and Last Browser path only when the executable exists', () => {
   const dir = 'D:\\Store\\Doubao\\app';
   const exe = `${dir}\\Doubao.exe`;

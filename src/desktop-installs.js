@@ -90,9 +90,26 @@ function doubaoLastBrowser(profile) {
   } catch { return ''; }
 }
 
+function workbuddyManifestExecutable(installDir, join, candidates) {
+  const manifest = join(installDir, 'resources', 'install-manifest.json');
+  try {
+    const stat = statSync(manifest);
+    if (!stat.isFile() || stat.size > 256 * 1024) return null;
+    const { appVersion, files } = JSON.parse(readFileSync(manifest, 'utf8').replace(/^\uFEFF/, ''));
+    if (typeof appVersion !== 'string' || !/^\d+\.\d+\.\d+(?:[.+-][\w.-]+)?$/.test(appVersion) || !Array.isArray(files)) return null;
+    const entries = new Set(files.filter((entry) => typeof entry === 'string').map((entry) => entry.replaceAll('\\', '/').toLowerCase()));
+    if (!entries.has('resources/app.asar')) return null;
+    const packaged = candidates.filter((filename) => entries.has(filename.toLowerCase()));
+    // A previous release's executable may remain beside the current archive.
+    return packaged.length === 1 ? join(installDir, packaged[0]) : null;
+  } catch { return null; }
+}
+
 function inspectInstall(name, installDir, { file, join, exeOverride, workerOverride }) {
   const spec = products[name];
-  const exePath = exeOverride || spec.exes.map((name) => join(installDir, name)).find(file);
+  const candidates = exeOverride ? [] : spec.exes.filter((filename) => file(join(installDir, filename)));
+  const manifestExe = name === 'workbuddy' && candidates.length > 1 ? workbuddyManifestExecutable(installDir, join, candidates) : null;
+  const exePath = exeOverride || manifestExe || (candidates.length > 0 ? join(installDir, candidates[0]) : null);
   if (!exePath || (exeOverride && !file(exeOverride))) return null;
   const worker = spec.worker && (workerOverride || join(installDir, ...spec.worker));
   const workerPath = worker && file(worker) ? worker : null;
