@@ -50,7 +50,10 @@ if (envTraeToken) {
   traeHeaders.authorization = `Cloud-IDE-JWT ${envTraeToken}`;
   traeHeaders['x-ide-token'] = envTraeToken;
 }
+const envTraeDeviceId = String(process.env.TRAE_DEVICE_ID || '').trim();
+if (envTraeDeviceId) traeHeaders['x-device-id'] = envTraeDeviceId;
 fillTraeDesktopHeaders(traeHeaders, { base: traeBase, payBase: traePayBase });
+const traeDeviceId = String(traeHeaders['x-device-id'] || session.deviceId || '').trim();
 
 export const config = {
   port: Number(process.env.PORT || 8787),
@@ -73,7 +76,7 @@ export const config = {
     base: traeBase,
     // 积分/权益接口在另一个域名（抓包实证，用 base 会 404）
     payBase: traePayBase,
-    deviceId: process.env.TRAE_DEVICE_ID || session.deviceId || traeHeaders['x-device-id'] || '',
+    deviceId: traeDeviceId,
     chatPath: process.env.TRAE_CHAT_PATH || session.chatPath || '/api/ide/v1/chat',
     modelListPath: session.modelListPath || '/api/ide/v1/model_list?type=chat',
     // 通用问答 intent，缺了它非默认模型会报 "intent not found"

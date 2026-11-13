@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, rmdirSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { fillTraeDesktopHeaders, TRAE_CHAT_BASE, TRAE_PAY_BASE } from '../src/trae-desktop-metadata.js';
+import { fillTraeDesktopHeaders, readTraeDeviceId, TRAE_CHAT_BASE, TRAE_PAY_BASE } from '../src/trae-desktop-metadata.js';
 
 const fixtureProduct = {
   bootConfig: { agent: { appId: '00000000-0000-0000-0000-000000000001' } },
@@ -30,7 +30,7 @@ function fixture(t) {
 }
 
 function options(installDir) {
-  return { base: TRAE_CHAT_BASE + '/', payBase: TRAE_PAY_BASE, locate: (name) => {
+  return { base: TRAE_CHAT_BASE + '/', payBase: TRAE_PAY_BASE, readDeviceId: () => '', locate: (name) => {
     assert.equal(name, 'trae');
     return { installDir };
   } };
@@ -79,4 +79,44 @@ test('Trae keeps configured headers when the install is missing or metadata is i
     fillTraeDesktopHeaders(headers, options(installDir));
   }
   assert.deepEqual(headers, { 'x-ide-version-code': 'manual-version' });
+});
+
+test('Trae replaces a non-numeric device id with the registered one used for check-in claims', (t) => {
+  const { file, installDir } = fixture(t);
+  writeFileSync(file, JSON.stringify(fixtureProduct));
+  const discover = { ...options(installDir), readDeviceId: () => '1234567890123456' };
+
+  const stale = { 'x-device-id': 'ef4521dd-1a2b-4c3d-8e9f-000000000000' };
+  fillTraeDesktopHeaders(stale, discover);
+  assert.equal(stale['x-device-id'], '1234567890123456');
+
+  const registered = { 'x-device-id': '1111222233334444' };
+  fillTraeDesktopHeaders(registered, discover);
+  assert.equal(registered['x-device-id'], '1111222233334444');
+
+  const unresolved = { 'x-device-id': 'ef4521dd-1a2b-4c3d-8e9f-000000000000' };
+  fillTraeDesktopHeaders(unresolved, { ...options(installDir), readDeviceId: () => '' });
+  assert.equal(unresolved['x-device-id'], 'ef4521dd-1a2b-4c3d-8e9f-000000000000');
+});
+
+test('Trae reads the registered device id from client storage', (t) => {
+  const appData = mkdtempSync(join(tmpdir(), 'nicerouter-trae-storage-'));
+  const storageDir = join(appData, 'Trae CN', 'User', 'globalStorage');
+  const storage = join(storageDir, 'storage.json');
+  mkdirSync(storageDir, { recursive: true });
+  t.after(() => rmSync(appData, { recursive: true, force: true }));
+
+  writeFileSync(storage, JSON.stringify({
+    'iCubeAuthInfo://icube-dc:1234567890123456': { token: 'should-not-import' },
+    'other.setting': true,
+  }));
+  assert.equal(readTraeDeviceId({ env: { APPDATA: appData }, platform: 'win32' }), '1234567890123456');
+  assert.equal(readTraeDeviceId({ env: { APPDATA: appData }, platform: 'darwin' }), '');
+
+  writeFileSync(storage, JSON.stringify({ 'iCubeAuthInfo://icube-dc:short': true }));
+  assert.equal(readTraeDeviceId({ env: { APPDATA: appData }, platform: 'win32' }), '');
+
+  writeFileSync(storage, '{partial');
+  assert.equal(readTraeDeviceId({ env: { APPDATA: appData }, platform: 'win32' }), '');
+  assert.equal(readTraeDeviceId({ env: { APPDATA: join(appData, 'missing') }, platform: 'win32' }), '');
 });
