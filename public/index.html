@@ -747,7 +747,7 @@ async function api(path, opts = {}) {
 }
 
 const RIGHT_ADDR = 'http://127.0.0.1:8787';
-const UI_VERSION = 'v27';
+const UI_VERSION = 'v28';
 let retryTimer = 0;
 let pendingModelList = null;
 let keySettingsPrompted = false;
@@ -1655,6 +1655,10 @@ function fmtNum(n) {
   return Number.isInteger(v) ? String(v) : v.toFixed(2);
 }
 
+function fmtUsage(n) {
+  return n > 0 && n < 0.01 ? '<0.01' : fmtNum(n);
+}
+
 function automationSummary(automation) {
   const el = $('#automationState');
   const known = typeof automation.enabled === 'boolean';
@@ -1697,7 +1701,7 @@ function quotaCard(name, q, ci, automation, shared = false) {
   const check = autoCheckinStatus(name, ci || q?.checkin, automation);
   const heading = `<div class="qhead"><strong>${esc(title)}</strong>${shared ? '<span class="qshared">共享额度</span>' : `<span class="qplan" title="${esc(q?.plan || q?.planTier || '')}">${esc(q?.plan || q?.planTier || '')}</span>`}</div>`;
   const checkHtml = `<div class="qcheck ${check.kind}" title="${esc(check.detail)}"><div><span>${esc(check.text)}${check.detail && check.kind === 'wait' ? ` · ${esc(check.detail)}` : ''}</span>${check.note ? `<small class="qcheck-detail">${esc(check.note)}</small>` : ''}</div></div>`;
-  const { today, month, since } = q?.usagePeriods ?? {};
+  const { today, month, since, method } = q?.usagePeriods ?? {};
   const hasToday = Number.isFinite(today);
   const hasMonth = Number.isFinite(month);
   const startedAt = typeof since === 'string' ? new Date(since) : null;
@@ -1706,11 +1710,16 @@ function quotaCard(name, q, ci, automation, shared = false) {
   const detailUrl = PROVIDER_USAGE_URL[name];
   const usageLink = (!hasToday || !hasMonth) && typeof detailUrl === 'string'
     ? `<a href="${esc(detailUrl)}" target="_blank" rel="noopener noreferrer">官网用量</a>` : '';
+  const usageSource = method === 'snapshot' ? '额度差额估算 · 北京时间'
+    : method === 'charges' ? '网关扣费回执 · 北京时间' : '本地统计 · 北京时间';
+  const usageDetail = method === 'snapshot'
+    ? '按可比较的额度快照估算。跨零点无法分配到某一天，跨月差额不计入。'
+    : '仅统计网关实际收到的扣费回执。';
   const periodHtml = `<div class="qrows">
-    <div class="qrow"><span>今日已用</span><b>${fmtNum(hasToday ? today : null)}</b></div>
-    <div class="qrow"><span>本月已用</span><b>${fmtNum(hasMonth ? month : null)}</b></div>
+    <div class="qrow"><span>今日已用</span><b>${esc(fmtUsage(hasToday ? today : null))}</b></div>
+    <div class="qrow"><span>本月已用</span><b>${esc(fmtUsage(hasMonth ? month : null))}</b></div>
     <div class="qperiod-source">
-      <span title="仅统计本地已记录的账户额度变化">本地统计 · 北京时间</span>
+      <span title="${esc(method ? usageDetail : '暂无统计来源')}">${usageSource}</span>
       ${usageStart}${usageLink}
     </div>
   </div>`;

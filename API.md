@@ -47,8 +47,8 @@ Authorization: Bearer <你的 API 密钥>
 `GET /v1/quota` 和 `GET /v1/checkin` 保持只读，顶层 `automation` 提供启用状态、检查时间和各通道结果。
 Trae/SOLO共享账号去重；后台运行不依赖网页打开。`AUTO_CHECKIN_ENABLED=0` 可关闭。
 
-`/v1/quota` 的账户条目包含 `usagePeriods.today`、`usagePeriods.month` 和 `usagePeriods.since`，表示按北京时间统计的本地已用积分与记录起点。账本保存在网关本机，重启后继续累计。
-Qoder 记录网关实际收到的请求扣费。Trae / SOLO 共用一份账本，和 WorkBuddy、MiniMax Code 一样，利用原有余额刷新中可匹配的累计消耗差额估算。跨日的快照差额只计入当月，跨月差额不计入。`null` 表示尚无有效记录。统计不另查官网用量明细，也不回填启用前的消耗。
+`/v1/quota` 的账户条目包含 `usagePeriods.today`、`usagePeriods.month`、`usagePeriods.since` 和 `usagePeriods.method`，表示按北京时间统计的本地已用积分、记录起点和统计方式。账本保存在网关本机，重启后继续累计。
+Qoder 记录网关实际收到的请求扣费，`method` 为 `charges`。Trae / SOLO 共用一份账本，和 WorkBuddy、MiniMax Code 一样，利用原有余额刷新中可匹配的累计消耗差额估算，`method` 为 `snapshot`。跨日的快照差额只计入当月，跨月差额不计入。该周期尚无可比较的快照时返回 `null`。统计不另查官网用量明细，也不回填启用前的消耗。
 
 ## 通道与模型 ID
 

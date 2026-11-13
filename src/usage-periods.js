@@ -7,7 +7,7 @@ const BEIJING_OFFSET_MS = 8 * 60 * 60 * 1000;
 const validAmount = (value) => Number.isFinite(value) && value >= 0;
 const validKey = (value) => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const period = (time) => new Date(time + BEIJING_OFFSET_MS).toISOString().slice(0, 10);
-const emptyPeriods = () => ({ today: null, month: null, since: null });
+const emptyPeriods = () => ({ today: null, month: null, since: null, method: null });
 
 // Adapters attach private observation metadata without adding account or pack IDs to the API.
 export const creditObservation = Symbol('credit observation');
@@ -60,11 +60,15 @@ export function createUsageLedger({ stateFile, now = Date.now, log = () => {} } 
     return { method, since: new Date(at).toISOString(), at, day: period(at), today: 0, month: 0, counters: [] };
   }
 
-  function saveAccount(account, record, at, amount) {
+  function saveAccount(account, record, at, amount, comparable = false) {
     const day = period(at);
     const sameDay = record.day === day;
     const sameMonth = record.day.slice(0, 7) === day.slice(0, 7);
     const direct = record.method === 'charges';
+    if (!direct) {
+      record.todayObserved = sameDay && (comparable || record.todayObserved === true || record.today > 0);
+      record.monthObserved = sameMonth && (comparable || record.monthObserved === true || record.month > 0);
+    }
     record.today = (sameDay ? record.today : 0) + (sameDay || direct ? amount : 0);
     record.month = (sameMonth ? record.month : 0) + (sameMonth || direct ? amount : 0);
     record.day = day;
@@ -80,10 +84,16 @@ export function createUsageLedger({ stateFile, now = Date.now, log = () => {} } 
     if (!record) return emptyPeriods();
     const day = period(now());
     const normalize = (value) => Number(value.toFixed(8));
+    const sameDay = record.day === day;
+    const sameMonth = record.day.slice(0, 7) === day.slice(0, 7);
+    const direct = record.method === 'charges';
+    const todayKnown = direct || record.todayObserved === true || record.today > 0;
+    const monthKnown = direct || record.monthObserved === true || record.month > 0;
     return {
-      today: record.day === day ? normalize(record.today) : 0,
-      month: record.day.slice(0, 7) === day.slice(0, 7) ? normalize(record.month) : 0,
+      today: sameDay && todayKnown ? normalize(record.today) : direct ? 0 : null,
+      month: sameMonth && monthKnown ? normalize(record.month) : direct ? 0 : null,
       since: record.since,
+      method: record.method,
     };
   }
 
@@ -100,15 +110,19 @@ export function createUsageLedger({ stateFile, now = Date.now, log = () => {} } 
     if (!current.size && accounts.get(account) !== record) return get(account);
     const previous = new Map(record.counters);
     let added = 0;
+    let comparable = false;
     for (const [key, amount] of current) {
       if (!previous.has(key)) continue;
       const before = previous.get(key);
       // A downward correction must not become an artificial charge when the counter rebounds.
       if (amount < before) current.set(key, before);
-      else added += amount - before;
+      else {
+        added += amount - before;
+        comparable = true;
+      }
     }
     record.counters = [...current];
-    saveAccount(account, record, at, added);
+    saveAccount(account, record, at, added, comparable);
     return get(account);
   }
 
@@ -116,7 +130,15 @@ export function createUsageLedger({ stateFile, now = Date.now, log = () => {} } 
     if (!validKey(account) || !validAmount(amount)) return;
     const record = loadAccount(account, 'charges', at);
     // Concurrent requests may finish flushing in a different order than their terminal events.
-    if (period(at) < record.day) return;
+    const day = period(at);
+    if (day < record.day) {
+      if (day.slice(0, 7) === record.day.slice(0, 7)) {
+        // Late receipts still belong to this month, but must not change today's total.
+        record.month += amount;
+        needsSave = true;
+      }
+      return;
+    }
     saveAccount(account, record, Math.max(at, record.at), amount);
   }
 
